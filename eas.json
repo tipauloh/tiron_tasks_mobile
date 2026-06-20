@@ -19,7 +19,7 @@
       }
     },
     "homolog": {
-      "distribution": "internal",
+      "distribution": "store",
       "channel": "homolog",
       "android": {
         "buildType": "apk"
@@ -47,6 +47,19 @@
     }
   },
   "submit": {
-    "production": {}
+    "homolog": {
+      "ios": {
+        "appleId": "ti.pauloh@gmail.com",
+        "ascAppId": "6782341060",
+        "appleTeamId": "A38TR9E22B"
+      }
+    },
+    "production": {
+      "ios": {
+        "appleId": "ti.pauloh@gmail.com",
+        "ascAppId": "6782341060",
+        "appleTeamId": "A38TR9E22B"
+      }
+    }
   }
 }
