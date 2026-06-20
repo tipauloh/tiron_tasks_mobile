@@ -8,7 +8,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "tirontasks",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "br.com.tiron.tasks",
