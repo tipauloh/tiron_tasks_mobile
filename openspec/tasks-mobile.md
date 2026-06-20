@@ -1,0 +1,158 @@
+# Backlog — Tiron Tasks Mobile
+
+**Data:** 2026-06-20
+
+Tarefas futuras organizadas por fase e prioridade. Cada item deve gerar uma spec em `openspec/specs/` antes da implementação.
+
+---
+
+## Fase 2 — Integração com API
+
+### API-001 — Backend REST/GraphQL
+**Prioridade:** Alta
+**Dependência:** Definição do servidor (app_web ou serviço dedicado)
+- Definir contrato da API (endpoints, autenticação, paginação)
+- Criar `ApiTaskRepository implements TaskRepository`
+- Criar `ApiTaskListRepository implements TaskListRepository`
+- Autenticação via Bearer token (armazenado no `expo-secure-store`)
+- Spec: `openspec/specs/api-integration.md`
+
+### API-002 — Sincronização Offline (fila de sync)
+**Prioridade:** Alta
+**Dependência:** API-001
+- Tabela `sync_queue` no SQLite local
+- Processar fila ao detectar conectividade
+- Retry com backoff exponencial
+- Indicador visual de status de sync
+- Spec: `openspec/specs/offline-first.md` (seção Fase 2)
+
+### API-003 — Resolução de Conflitos
+**Prioridade:** Média
+**Dependência:** API-002
+- Estratégia Last Write Wins baseada em `updated_at`
+- Merge por campo em caso de conflitos concorrentes
+- UI para conflitos não resolvíveis automaticamente
+
+### API-004 — Autenticação de Usuário
+**Prioridade:** Alta
+**Dependência:** API-001
+- Tela de login (`src/app/(auth)/login.tsx`)
+- Tela de cadastro
+- Recuperação de senha
+- Token persistido no `expo-secure-store`
+- Spec: `openspec/specs/auth.md`
+
+---
+
+## Fase 2 — Funcionalidades
+
+### FEAT-001 — Notificações Push
+**Prioridade:** Alta
+- Lembretes de tarefas (data/hora configurável)
+- Notificações via FCM (Android) e APNs (iOS)
+- `expo-notifications` já instalado
+- Deep link ao tocar na notificação → `task/[id]`
+- Spec: `openspec/specs/notifications.md`
+
+### FEAT-002 — Compartilhamento de Tarefas
+**Prioridade:** Média
+- Compartilhar tarefa individual via link
+- Colaboração em lista (convidar usuário por e-mail)
+- Permissões: visualizar / editar / admin
+- Spec: `openspec/specs/collaboration.md`
+
+### FEAT-003 — Integrações Externas
+**Prioridade:** Baixa
+- Google Calendar (sincronizar tarefas com due_date)
+- Apple Calendar (EventKit)
+- Integração via OAuth 2.0
+- Spec: `openspec/specs/external-integrations.md`
+
+### FEAT-004 — Widget Nativo iOS/Android
+**Prioridade:** Baixa
+- Widget de tarefas do dia (iOS WidgetKit / Android App Widgets)
+- Expo Modules API para implementação nativa
+- Exige eject para managed workflow ou uso de bare workflow
+- Spec: `openspec/specs/widget.md`
+
+### FEAT-005 — Modo Focus / Pomodoro
+**Prioridade:** Baixa
+- Timer Pomodoro integrado à tarefa
+- Sessões de 25min + pausa de 5min
+- Histórico de sessões por tarefa
+- Notificação ao fim do ciclo
+- Spec: `openspec/specs/focus-mode.md`
+
+### FEAT-006 — Recorrência de Tarefas
+**Prioridade:** Média
+- Tarefas recorrentes: diária, semanal, mensal, anual
+- Configuração de dias da semana (para recorrência semanal)
+- Limite por data de encerramento
+- Geração automática da próxima ocorrência ao concluir
+- Spec: `openspec/specs/recurrence.md`
+
+### FEAT-007 — Anexos e Comentários
+**Prioridade:** Baixa
+- Upload de imagens/documentos em tarefas
+- Comentários de texto por tarefa
+- Depende de API (Fase 2 API-001)
+- Spec: `openspec/specs/attachments-comments.md`
+
+### FEAT-008 — Subtarefas com múltiplos níveis
+**Prioridade:** Baixa
+- UI de subtarefas indentadas com múltiplos níveis (fase 1 suporta apenas 1 nível na UI)
+- Progresso de conclusão baseado em subtarefas
+- Spec: `openspec/specs/subtasks.md`
+
+---
+
+## Fase 2 — UX / Performance
+
+### UX-001 — Drag-and-Drop para reordenar tarefas
+**Prioridade:** Média
+- Reordenar tarefas arrastando (react-native-reanimated + gesture handler)
+- Atualizar `position` via `updatePositions()` no repositório
+- Haptic feedback ao iniciar drag
+
+### UX-002 — Swipe Actions em TaskItem
+**Prioridade:** Alta
+- Swipe para direita: concluir tarefa
+- Swipe para esquerda: deletar tarefa (com confirmação)
+- react-native-gesture-handler (já instalado)
+
+### UX-003 — Animações de Transição Avançadas
+**Prioridade:** Baixa
+- Shared element transition entre lista e detalhe de tarefa
+- react-native-reanimated Layout Animations
+- Animação de checkbox ao marcar concluída
+
+### UX-004 — Atalhos de Teclado (iPad / teclado externo)
+**Prioridade:** Baixa
+- Cmd+N para nova tarefa
+- Cmd+F para busca
+- ESC para fechar modal
+
+---
+
+## Infraestrutura / Técnico
+
+### TECH-001 — Backup automático
+**Prioridade:** Média
+- Backup do banco SQLite para iCloud Drive (iOS) / Google Drive (Android)
+- Restauração em novo dispositivo
+
+### TECH-002 — CI/CD com EAS
+**Prioridade:** Alta
+- GitHub Actions integrado ao EAS
+- Build automático em PR para `preview` channel
+- OTA automático em merge para `main` (production channel)
+
+### TECH-003 — Monitoramento de erros
+**Prioridade:** Média
+- Integração com Sentry para React Native
+- Tracking de crashes e erros de runtime
+
+### TECH-004 — Testes de integração
+**Prioridade:** Média
+- Testes E2E com Detox
+- Cobertura dos fluxos principais (criar/concluir/deletar tarefa)
