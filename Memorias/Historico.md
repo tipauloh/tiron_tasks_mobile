@@ -65,3 +65,17 @@
 - **OTA (parte JS — logo+botões):** update group `e776304d-a82d-49fe-b079-534816bf82ba`.
 - **Ícone nativo (launcher/splash/adaptive) exige BUILD:** disparada build production Android+iOS via `eas build --platform all --profile production`. Android build `1576059e-6e11-41ca-b0e7-4086e8edb8e9`, iOS `fd846657-0549-4047-a7bc-93c0c4ce8d89`. Credenciais iOS já existiam no EAS.
 - **Pré-requisito do build:** as mudanças foram **commitadas no git** antes (eas build empacota o HEAD do git, não o working dir — diferente do eas update).
+
+### AUTH-001 — Cadastro de usuário e recuperação de senha (mobile)
+- **Telas:** `src/app/(auth)/register.tsx` (cadastro nome/email/senha → auto-login) e `src/app/(auth)/forgot-password.tsx` (email → código → nova senha). Links no `login.tsx`.
+- **Backend:** signup em `app_api` (`POST /api/v1/auth/register`, grava em `mobile_users`); reset via `app_web` (`POST /api/mobile/password/{forgot,reset}`, tabela própria `mobile_password_reset_tokens`, código 6 dígitos por e-mail). Decidido centralizar o reset no Laravel por reaproveitar a infra de e-mail.
+- **Config:** `app.json` `extra.webUrl` (placeholder `https://app.tiron.com.br` — **CONFIRMAR URL pública real do app_web**, diferente da apiUrl).
+- **Implementado por 3 agentes em paralelo** (app_api / app_web / app_mobile) com contratos de API fixados.
+- **PENDÊNCIAS antes de ativar em produção:**
+  1. **Inconsistência app_api:** auth usa `mobile_users`, mas `user_service` (profile/update) usa `users` → perfil quebra após signup. Alinhar para `mobile_users`.
+  2. **Deploy dos backends** (app_api com register; app_web com reset + Configurações) e **confirmar webUrl**.
+  3. **Configurar SMTP** na nova tela de Configurações do app_web (hoje `MAIL_MAILER=log`).
+  4. Só então publicar **OTA** das telas de auth (ainda NÃO publicado — produção tem só o branding).
+
+### Configurações + SMTP no app_web (base do reset)
+- Tabela `settings` + `Admin/SettingController` + permissão `manage-settings` + menu + `SettingsServiceProvider` (injeta SMTP em runtime). Ver `app_web` (commit próprio).
