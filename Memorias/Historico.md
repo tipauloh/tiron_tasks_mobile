@@ -81,3 +81,10 @@
 
 ### Configurações + SMTP no app_web (base do reset)
 - Tabela `settings` + `Admin/SettingController` + permissão `manage-settings` + menu + `SettingsServiceProvider` (injeta SMTP em runtime). Ver `app_web` (commit próprio).
+
+### SOCIAL-001 — Login social Apple e Google (2026-06-21)
+- **Mobile:** `expo-apple-authentication` + `@react-native-google-signin` (SDKs nativos); `app.json` com plugins, `ios.usesAppleSignIn`, `iosUrlScheme` e client IDs públicos; handlers em `login.tsx`; `auth-store.loginWithGoogle/loginWithApple`. Botões habilitados (Apple iOS; Google iOS+Android).
+- **Backend (app_api):** `app/core/oauth.py` (validação JWKS Google/Apple), `/auth/google` e `/auth/apple` (eram stubs 501) → criam/logam em `mobile_users`. Deps `pyjwt[crypto]`+`httpx`. Deployado e validado (401 p/ token inválido).
+- **Fix Dockerfile app_api:** o fallback `pip install` hardcoded não tinha pyjwt/httpx → container quebrava (ModuleNotFoundError). Corrigido + rebuild.
+- **Credenciais:** 3 client IDs + secret no `.env` do VPS (fora do git). SHA-1 keystore EAS cadastrado no OAuth client Android. **Rotacionar o client secret** (vazou no chat).
+- **Build iOS+Android disparada:** Android `1c549ec7`, iOS `c1553bb2`. Validar login no device após instalar.
