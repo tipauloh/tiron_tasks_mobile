@@ -6,6 +6,28 @@ Tarefas futuras organizadas por fase e prioridade. Cada item deve gerar uma spec
 
 ---
 
+## Concluído — Correções
+
+### FIX-001 — Seletor de lista na edição de tarefa ✅ (2026-06-21)
+**Sintoma:** sem opção de escolher/alterar a lista ao editar tarefa.
+**Arquivo:** `src/app/task/[id].tsx` (usa `ListSelectorTrigger` de `src/components/tasks/ListSelector.tsx`).
+**Mudança:** estado `listId` inicializado de `task.task_list`; seção "Lista" na UI; `task_list_id` enviado no `handleSave` (`null` = sem lista).
+**Status:** typecheck ok, 131 testes passando, publicado OTA (production, runtime 1.0.0, update group `387b36b3-d780-4837-9409-175157b01b0b`).
+**Detalhe:** `Memorias/Historico.md` → Fase 2 — Correções.
+
+### FIX-002 — Seção "Concluídas" recolhível em todas as listagens ✅ (2026-06-21)
+**Pedido:** concluídas agrupadas abaixo das pendentes, com ocultar/mostrar, em todo o app.
+**Decisões:** padrão oculto · preferência global persistida · 4 telas (dashboard, tarefas, calendário, busca).
+**Arquivos:** `src/utils/group-tasks.ts` (lógica pura testada), `src/components/tasks/CompletedSection.tsx` (header), `src/store/filter-store.ts` (`showCompleted`), telas `(tabs)/index|tasks|calendar|search.tsx`.
+**Status:** typecheck ok, 139 testes (8 novos), OTA production runtime 1.0.0, update group `3e838724-9b42-4033-bcff-d412b92150d1`.
+
+### FEAT-001m — Adição rápida na aba Tarefas ✅ (2026-06-21)
+**Pedido:** campo para criar tarefa só com o nome, respeitando a lista ativa (lista → cria nela; "Todas" → sem lista), à esquerda do botão "+".
+**Arquivo:** `src/app/(tabs)/tasks.tsx` (`handleQuickAdd` + `useCreateTask`, barra inferior com `TextInput` + FAB).
+**Status:** incluído no mesmo OTA do FIX-002.
+
+---
+
 ## Fase 2 — Integração com API
 
 ### API-001 — Backend REST/GraphQL

@@ -5,11 +5,18 @@
  * Usa jest-expo preset.
  */
 
-// Mock de expo-modules-core para o uuid (não disponível no ambiente de teste Jest puro)
+// Mock expo-modules-core completo para evitar requireNativeModule em ambiente Jest
 jest.mock('expo-modules-core', () => ({
-  uuid: {
-    v4: jest.fn(() => '12345678-1234-1234-1234-123456789012'),
-  },
+  uuid: { v4: jest.fn(() => '12345678-1234-1234-1234-123456789012') },
+  requireNativeModule: jest.fn(() => ({})),
+  requireOptionalNativeModule: jest.fn(() => null),
+  NativeModulesProxy: {},
+  EventEmitter: jest.fn(() => ({ addListener: jest.fn(), removeAllListeners: jest.fn() })),
+}));
+
+// Bloquear a cadeia de imports do winter/fetch do Expo
+jest.mock('expo', () => ({
+  ...jest.requireActual('expo'),
 }));
 
 import { generateId, nowISO, todayDate } from '../../src/utils/id';

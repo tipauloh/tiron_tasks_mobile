@@ -2,6 +2,7 @@ export * from './PriorityBadge';
 export * from './DueDateLabel';
 export * from './TaskItem';
 export * from './TaskSection';
+export * from './CompletedSection';
 export * from './SubtaskList';
 export * from './PrioritySelector';
 export * from './StatusSelector';

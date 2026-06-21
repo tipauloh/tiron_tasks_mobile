@@ -19,7 +19,7 @@
     "android": {
       "package": "br.com.tiron.tasks",
       "adaptiveIcon": {
-        "backgroundColor": "#208AEF",
+        "backgroundColor": "#F5F5F7",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -57,6 +57,7 @@
       "reactCompiler": true
     },
     "extra": {
+      "apiUrl": "https://api.tiron.com.br",
       "eas": {
         "projectId": "c63cddf2-8ce3-4109-99f8-c0f7782f09e7"
       }

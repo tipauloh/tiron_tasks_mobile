@@ -5,6 +5,15 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 ## [Unreleased]
 
 ### Added
+- Aba Tarefas: campo de adição rápida (cria tarefa só com o nome, na lista ativa ou sem lista) ao lado do botão "+". [FEAT-001m]
+
+### Changed
+- Listagens de tarefas (dashboard, tarefas, calendário, busca): tarefas concluídas agora ficam numa seção "Concluídas (N)" recolhível abaixo das pendentes — oculta por padrão, preferência global persistida. [FIX-002]
+
+### Fixed
+- Edição de tarefa: adicionado seletor de lista (`task_list_id`), que estava ausente na tela `task/[id]`. Publicado via OTA (production, runtime 1.0.0). [FIX-001]
+
+### Added (foundation)
 - Arquitetura Clean com camadas domain/infrastructure/store/presentation
 - Banco local SQLite com expo-sqlite v56
 - Design System: tokens de cor, tipografia e espaçamento

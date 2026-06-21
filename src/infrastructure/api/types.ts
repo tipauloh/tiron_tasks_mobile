@@ -1,0 +1,143 @@
+// API response envelope types
+
+export interface SingleResponse<T> {
+  data: T;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    next_cursor: string | null;
+    has_more: boolean;
+  };
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
+export interface ApiError {
+  detail: string;
+}
+
+// Auth
+export interface TokenResponse {
+  token: string;
+  token_type: string;
+}
+
+export interface UserMeResponse {
+  id: number;
+  name: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+}
+
+// Task
+export interface ApiLabel {
+  id: number;
+  name: string;
+  color: string | null;
+}
+
+export interface ApiChecklistItem {
+  id: number;
+  title: string;
+  is_done: boolean;
+  position: number;
+}
+
+export interface ApiReminder {
+  id: number;
+  remind_at: string;
+  notified_at: string | null;
+}
+
+export interface ApiTaskList {
+  id: number;
+  name: string;
+  color: string | null;
+}
+
+export interface ApiTaskSummary {
+  id: number;
+  title: string;
+  status: string;
+  priority: string;
+  due_date: string | null;
+  is_favorite: boolean;
+  completed_at: string | null;
+  checklist_count: number;
+  checklist_done: number;
+  labels: ApiLabel[];
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ApiTaskDetail extends ApiTaskSummary {
+  description: string | null;
+  task_list: ApiTaskList | null;
+  checklist_items: ApiChecklistItem[];
+  comments_count: number;
+  reminders: ApiReminder[];
+}
+
+export interface ApiTaskCreateRequest {
+  title: string;
+  task_list_id?: number;
+  description?: string;
+  status?: string;
+  priority?: string;
+  due_date?: string;
+  parent_id?: number;
+  is_favorite?: boolean;
+}
+
+export interface ApiTaskUpdateRequest {
+  title?: string;
+  description?: string;
+  status?: string;
+  priority?: string;
+  due_date?: string;
+  is_favorite?: boolean;
+  task_list_id?: number;
+}
+
+// Task Lists
+export interface ApiTaskListFull {
+  id: number;
+  name: string;
+  color: string | null;
+  icon: string | null;
+  position: number;
+  archived_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ApiTaskListCreateRequest {
+  name: string;
+  color?: string;
+  icon?: string;
+  position?: number;
+}
+
+export interface ApiTaskListUpdateRequest {
+  name?: string;
+  color?: string;
+  icon?: string;
+  position?: number;
+}
+
+// Dashboard
+export interface ApiDashboard {
+  user_name: string;
+  counters: {
+    pending: number;
+    completed: number;
+    overdue: number;
+    due_today: number;
+  };
+  urgent_tasks: ApiTaskSummary[];
+}

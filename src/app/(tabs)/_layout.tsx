@@ -3,7 +3,7 @@ import { Platform, Text } from 'react-native';
 import { useColorScheme } from 'react-native';
 import { Colors } from '@/constants/colors';
 
-function TabBarIcon({ emoji, label }: { emoji: string; label: string }) {
+function TabBarIcon({ emoji }: { emoji: string }) {
   return <Text style={{ fontSize: 22 }}>{emoji}</Text>;
 }
 
@@ -29,30 +29,27 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Início',
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon emoji="🏠" label="Início" />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="tasks"
-        options={{
           title: 'Tarefas',
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon emoji="✅" label="Tarefas" />
-          ),
+          tabBarIcon: () => <TabBarIcon emoji="✅" />,
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="calendar"
         options={{
-          title: 'Busca',
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon emoji="🔍" label="Busca" />
-          ),
+          title: 'Calendário',
+          tabBarIcon: () => <TabBarIcon emoji="🗓️" />,
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: () => <TabBarIcon emoji="👤" />,
+        }}
+      />
+      {/* Arquivos legados mantidos como rotas mas ocultos do tab bar */}
+      <Tabs.Screen name="tasks" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
     </Tabs>
   );
 }
