@@ -72,10 +72,11 @@
 - **Config:** `app.json` `extra.webUrl` (placeholder `https://app.tiron.com.br` — **CONFIRMAR URL pública real do app_web**, diferente da apiUrl).
 - **Implementado por 3 agentes em paralelo** (app_api / app_web / app_mobile) com contratos de API fixados.
 - **PENDÊNCIAS antes de ativar em produção:**
-  1. **Inconsistência app_api:** auth usa `mobile_users`, mas `user_service` (profile/update) usa `users` → perfil quebra após signup. Alinhar para `mobile_users`.
-  2. **Deploy dos backends** (app_api com register; app_web com reset + Configurações) e **confirmar webUrl**.
-  3. **Configurar SMTP** na nova tela de Configurações do app_web (hoje `MAIL_MAILER=log`).
-  4. Só então publicar **OTA** das telas de auth (ainda NÃO publicado — produção tem só o branding).
+  1. ✅ **Corrigido (app_api):** `user_service` (get/update profile) agora opera em `mobile_users` (era `users`), e `auditable_type` → `App\Models\MobileUser`. Sintaxe validada (py_compile); **testes do app_api ainda usam fixtures em `users`** — realinhar + rodar com Postgres no deploy/CI.
+  2. ✅ **webUrl confirmado:** `https://tasks.tiron.com.br`.
+  3. **SMTP:** seed das settings gravou os valores atuais do `.env` (driver `log` — "config teste"). Trocar para `smtp` real na tela de Configurações quando quiser e-mail de verdade.
+  4. ✅ **OTA das telas de auth publicado:** update group `ffedd494-4d67-495f-badf-a0ea3bd06487`.
+  5. ⏳ **Falta só o DEPLOY dos backends** (app_api com `/register`+fix; app_web com Configurações+reset) para o cadastro/reset funcionarem ponta a ponta. Fora do alcance do agente (acesso ao servidor).
 
 ### Configurações + SMTP no app_web (base do reset)
 - Tabela `settings` + `Admin/SettingController` + permissão `manage-settings` + menu + `SettingsServiceProvider` (injeta SMTP em runtime). Ver `app_web` (commit próprio).
