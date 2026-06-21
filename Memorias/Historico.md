@@ -57,3 +57,11 @@
 - **Implementação:** em `(tabs)/tasks.tsx`, barra inferior (`KeyboardAvoidingView`) com `TextInput` à esquerda do FAB; `handleQuickAdd` usa `useCreateTask` com `task_list_id = activeListIntId`. Placeholder reflete a lista ativa.
 - **Publicação OTA (FIX-002 + FEAT-001m):** canal `production`, runtime `1.0.0`, update group `3e838724-9b42-4033-bcff-d412b92150d1` (android+iOS).
 - **Correção FEAT-001m:** o campo de adição rápida havia sido posto em `(tabs)/tasks.tsx`, que é **rota legada oculta** (`href: null` em `_layout.tsx`). A aba "Tarefas" do tab bar renderiza `(tabs)/index.tsx` (dashboard). O campo foi movido para `index.tsx`. Republicado: update group `93e10ab2-6e79-4354-96af-2d6f5efd97d8`. **Nota:** apenas `index.tsx` (Tarefas), `calendar.tsx` e `profile.tsx` são telas visíveis; `tasks.tsx` e `search.tsx` são legados ocultos.
+
+### BRAND-001 — Novo ícone da marca + branding da tela de login
+- **Fonte:** SVG "TironTasks" (T preto #0D0D1A + check diagonal roxo #7B4DFF sobre fundo #F5F5F7). Gerado via `sharp` a partir de variantes SVG (full-bleed para iOS, transparente safe-zone para Android foreground, monochrome, rounded).
+- **Assets atualizados** (`assets/images/`): `icon.png` (1024 full-bleed, sem transparência p/ iOS), `favicon.png`, `splash-icon.png` (transparente), `android-icon-foreground/background/monochrome.png`, novos `logo.png` e `google-logo.png` (G oficial 4 cores). `app.json`: `adaptiveIcon.backgroundColor` → `#F5F5F7`.
+- **Login** (`src/app/(auth)/login.tsx`): logo trocado pelo ícone da marca; botões OAuth Google (branco + G colorido) e Apple (preto + maçã) seguindo guidelines oficiais, **desabilitados** ("Em breve") até configurar OAuth.
+- **OTA (parte JS — logo+botões):** update group `e776304d-a82d-49fe-b079-534816bf82ba`.
+- **Ícone nativo (launcher/splash/adaptive) exige BUILD:** disparada build production Android+iOS via `eas build --platform all --profile production`. Android build `1576059e-6e11-41ca-b0e7-4086e8edb8e9`, iOS `fd846657-0549-4047-a7bc-93c0c4ce8d89`. Credenciais iOS já existiam no EAS.
+- **Pré-requisito do build:** as mudanças foram **commitadas no git** antes (eas build empacota o HEAD do git, não o working dir — diferente do eas update).

@@ -6,6 +6,7 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 
 ### Added
 - Aba Tarefas: campo de adição rápida (cria tarefa só com o nome, na lista ativa ou sem lista) ao lado do botão "+". [FEAT-001m]
+- Identidade visual: novo ícone da marca (T + check) em launcher/splash/adaptive/favicon e logo na tela de login. Botões Google/Apple conforme guidelines oficiais (desabilitados até configurar OAuth). [BRAND-001]
 
 ### Changed
 - Listagens de tarefas (dashboard, tarefas, calendário, busca): tarefas concluídas agora ficam numa seção "Concluídas (N)" recolhível abaixo das pendentes — oculta por padrão, preferência global persistida. [FIX-002]
