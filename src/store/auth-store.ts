@@ -2,6 +2,14 @@ import { create } from 'zustand';
 import { authRepository } from '@/infrastructure/api/auth-repository';
 import { SecureStorage } from '@/lib/secure-storage';
 import { setUnauthorizedHandler } from '@/infrastructure/api/client';
+import { queryClient } from '@/lib/query-client';
+
+// Remove TODO o cache de dados (tarefas, listas, dashboard…) ao trocar de
+// identidade, para que dados de um usuário nunca apareçam para outro no mesmo
+// dispositivo (logout, 401 ou login de outra conta).
+function clearUserCache() {
+  queryClient.clear();
+}
 
 export interface AuthUser {
   id: number;
@@ -32,6 +40,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
   // Handler de 401: limpa estado de autenticação SEM limpar error
   // (logout() manual do usuário limpa error; 401 automático preserva mensagem)
   setUnauthorizedHandler(() => {
+    clearUserCache();
     SecureStorage.clearToken().then(() => {
       set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     });
@@ -65,6 +74,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const tokenData = await authRepository.login(email, password);
         await SecureStorage.setToken(tokenData.token);
+        clearUserCache();
         const user = await authRepository.me();
         set({ user, token: tokenData.token, isAuthenticated: true, isLoading: false });
       } catch (e: unknown) {
@@ -80,6 +90,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const tokenData = await authRepository.register(name, email, password);
         await SecureStorage.setToken(tokenData.token);
+        clearUserCache();
         const user = await authRepository.me();
         set({ user, token: tokenData.token, isAuthenticated: true, isLoading: false });
       } catch (e: unknown) {
@@ -95,6 +106,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const tokenData = await authRepository.loginWithGoogle(idToken);
         await SecureStorage.setToken(tokenData.token);
+        clearUserCache();
         const user = await authRepository.me();
         set({ user, token: tokenData.token, isAuthenticated: true, isLoading: false });
       } catch (e: unknown) {
@@ -110,6 +122,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const tokenData = await authRepository.loginWithApple(identityToken, name);
         await SecureStorage.setToken(tokenData.token);
+        clearUserCache();
         const user = await authRepository.me();
         set({ user, token: tokenData.token, isAuthenticated: true, isLoading: false });
       } catch (e: unknown) {
@@ -127,6 +140,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         // ignore logout errors
       }
       await SecureStorage.clearToken();
+      clearUserCache();
       set({ user: null, token: null, isAuthenticated: false, error: null });
     },
 

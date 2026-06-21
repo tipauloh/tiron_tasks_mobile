@@ -2,21 +2,11 @@ import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useSegments } from 'expo-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { AppState, AppStateStatus, useColorScheme } from 'react-native';
 import { useAuthStore } from '@/store/auth-store';
 import { checkAndApplyUpdate } from '@/lib/updates';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+import { queryClient } from '@/lib/query-client';
 
 function AuthGuard() {
   const { isAuthenticated, isLoading, restoreSession } = useAuthStore();
