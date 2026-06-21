@@ -46,19 +46,22 @@ export const authRepository = {
     return res.data;
   },
 
-  async loginWithGoogle(_idToken: string): Promise<TokenResponse> {
+  async loginWithGoogle(idToken: string): Promise<TokenResponse> {
     const res = await apiClient.post<SingleResponse<TokenResponse>>(
       '/api/v1/auth/google',
-      { id_token: _idToken },
+      { idToken },
       { skipAuth: true },
     );
     return res.data;
   },
 
-  async loginWithApple(_identityToken: string): Promise<TokenResponse> {
+  async loginWithApple(
+    identityToken: string,
+    name: string | null,
+  ): Promise<TokenResponse> {
     const res = await apiClient.post<SingleResponse<TokenResponse>>(
       '/api/v1/auth/apple',
-      { id_token: _identityToken },
+      { identityToken, name },
       { skipAuth: true },
     );
     return res.data;

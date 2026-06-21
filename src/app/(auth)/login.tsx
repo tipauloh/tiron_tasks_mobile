@@ -15,13 +15,31 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useLocalSearchParams } from 'expo-router';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { useAuthStore } from '@/store/auth-store';
 import { Text } from '@/components/ui/Text';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
-import { APP_VERSION, APP_NAME } from '@/lib/config';
+import {
+  APP_VERSION,
+  APP_NAME,
+  GOOGLE_WEB_CLIENT_ID,
+  GOOGLE_IOS_CLIENT_ID,
+} from '@/lib/config';
 import { checkAndApplyUpdate, getUpdateInfo } from '@/lib/updates';
+
+// Configura o Google Sign-In uma única vez no carregamento do módulo.
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  iosClientId: GOOGLE_IOS_CLIENT_ID,
+});
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -29,7 +47,9 @@ export default function LoginScreen() {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, loginWithGoogle, loginWithApple, isLoading, error, clearError } =
+    useAuthStore();
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
 
   // Aviso de sucesso vindo de outras telas (ex.: redefinição de senha).
   const params = useLocalSearchParams<{ notice?: string }>();
@@ -70,6 +90,78 @@ export default function LoginScreen() {
       await login(email.trim().toLowerCase(), password);
     } catch {
       // error já está no store
+    }
+  };
+
+  const handleGoogle = async () => {
+    clearError();
+    setNotice(null);
+    setOauthLoading('google');
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      if (!isSuccessResponse(response)) {
+        // Usuário cancelou — não mostramos erro.
+        return;
+      }
+      const idToken = response.data.idToken;
+      if (!idToken) {
+        Alert.alert('Erro', 'Não foi possível obter o token do Google.');
+        return;
+      }
+      await loginWithGoogle(idToken);
+    } catch (e: unknown) {
+      if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) {
+        // cancelamento explícito — silencioso
+        return;
+      }
+      // demais erros já são tratados no store (error) quando vêm da API;
+      // erros nativos do SDK exibimos via Alert.
+      if (!useAuthStore.getState().error) {
+        const message = e instanceof Error ? e.message : 'Erro ao entrar com Google.';
+        Alert.alert('Erro', message);
+      }
+    } finally {
+      setOauthLoading(null);
+    }
+  };
+
+  const handleApple = async () => {
+    clearError();
+    setNotice(null);
+    setOauthLoading('apple');
+    try {
+      const cred = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!cred.identityToken) {
+        Alert.alert('Erro', 'Não foi possível obter o token da Apple.');
+        return;
+      }
+      const fullName = cred.fullName;
+      const name = fullName
+        ? [fullName.givenName, fullName.familyName].filter(Boolean).join(' ').trim() || null
+        : null;
+      await loginWithApple(cred.identityToken, name);
+    } catch (e: unknown) {
+      if (
+        e !== null &&
+        typeof e === 'object' &&
+        'code' in e &&
+        (e as { code?: string }).code === 'ERR_REQUEST_CANCELED'
+      ) {
+        // Usuário cancelou — silencioso.
+        return;
+      }
+      if (!useAuthStore.getState().error) {
+        const message = e instanceof Error ? e.message : 'Erro ao entrar com Apple.';
+        Alert.alert('Erro', message);
+      }
+    } finally {
+      setOauthLoading(null);
     }
   };
 
@@ -264,34 +356,56 @@ export default function LoginScreen() {
               <View style={[styles.dividerLine, { backgroundColor: borderDefault }]} />
             </View>
 
-            {/* OAuth — Apple primeiro, Google segundo, lado a lado e compactos.
-               Desabilitados até a build com os SDKs nativos (expo-apple-authentication / google-signin). */}
+            {/* OAuth — Apple primeiro, Google segundo, lado a lado e compactos. */}
             <View style={styles.oauthRow}>
               {/* Apple — botão preto + logo (Sign in with Apple guidelines). iOS apenas. */}
               {Platform.OS === 'ios' && (
                 <Pressable
-                  style={[styles.oauthBtn, styles.oauthBtnDisabled, { backgroundColor: '#000000', borderColor: '#000000' }]}
-                  disabled
+                  style={({ pressed }) => [
+                    styles.oauthBtn,
+                    { backgroundColor: '#000000', borderColor: '#000000' },
+                    (oauthLoading !== null || isLoading) && styles.oauthBtnDisabled,
+                    pressed && styles.oauthBtnDisabled,
+                  ]}
+                  onPress={handleApple}
+                  disabled={oauthLoading !== null || isLoading}
                   accessibilityRole="button"
-                  accessibilityLabel="Continuar com Apple (em breve)"
+                  accessibilityLabel="Continuar com Apple"
                 >
-                  <Ionicons name="logo-apple" size={18} color="#FFFFFF" />
-                  <Text style={[styles.oauthBtnText, { color: '#FFFFFF' }]}>Apple</Text>
+                  {oauthLoading === 'apple' ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-apple" size={18} color="#FFFFFF" />
+                      <Text style={[styles.oauthBtnText, { color: '#FFFFFF' }]}>Apple</Text>
+                    </>
+                  )}
                 </Pressable>
               )}
 
               {/* Google — botão branco + "G" colorido (Google Brand Guidelines). */}
               <Pressable
-                style={[styles.oauthBtn, styles.oauthBtnDisabled, { backgroundColor: '#FFFFFF', borderColor: '#DADCE0' }]}
-                disabled
+                style={({ pressed }) => [
+                  styles.oauthBtn,
+                  { backgroundColor: '#FFFFFF', borderColor: '#DADCE0' },
+                  (oauthLoading !== null || isLoading) && styles.oauthBtnDisabled,
+                  pressed && styles.oauthBtnDisabled,
+                ]}
+                onPress={handleGoogle}
+                disabled={oauthLoading !== null || isLoading}
                 accessibilityRole="button"
-                accessibilityLabel="Continuar com Google (em breve)"
+                accessibilityLabel="Continuar com Google"
               >
-                <Image source={require('../../../assets/images/google-logo.png')} style={styles.oauthLogo} resizeMode="contain" />
-                <Text style={[styles.oauthBtnText, { color: '#3C4043' }]}>Google</Text>
+                {oauthLoading === 'google' ? (
+                  <ActivityIndicator size="small" color="#3C4043" />
+                ) : (
+                  <>
+                    <Image source={require('../../../assets/images/google-logo.png')} style={styles.oauthLogo} resizeMode="contain" />
+                    <Text style={[styles.oauthBtnText, { color: '#3C4043' }]}>Google</Text>
+                  </>
+                )}
               </Pressable>
             </View>
-            <Text style={[styles.oauthHint, { color: theme.textTertiary }]}>Em breve</Text>
           </Animated.View>
 
           {/* Rodapé discreto: versão + OTA build */}
@@ -559,11 +673,6 @@ const styles = StyleSheet.create({
   oauthBtnText: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.medium as '500',
-  },
-  oauthHint: {
-    fontSize: FontSize.xs,
-    textAlign: 'center',
-    marginTop: Spacing[2],
   },
 
   // Footer

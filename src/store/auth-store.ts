@@ -21,6 +21,8 @@ interface AuthState {
   restoreSession: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithApple: (identityToken: string, name: string | null) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
   updateUser: (partial: Partial<Pick<AuthUser, 'name' | 'email'>>) => void;
@@ -83,6 +85,36 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch (e: unknown) {
         const message =
           e instanceof Error ? e.message : 'Erro ao criar conta. Tente novamente.';
+        set({ error: message, isLoading: false, isAuthenticated: false });
+        throw e;
+      }
+    },
+
+    loginWithGoogle: async (idToken: string) => {
+      set({ isLoading: true, error: null });
+      try {
+        const tokenData = await authRepository.loginWithGoogle(idToken);
+        await SecureStorage.setToken(tokenData.token);
+        const user = await authRepository.me();
+        set({ user, token: tokenData.token, isAuthenticated: true, isLoading: false });
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : 'Erro ao entrar com Google. Tente novamente.';
+        set({ error: message, isLoading: false, isAuthenticated: false });
+        throw e;
+      }
+    },
+
+    loginWithApple: async (identityToken: string, name: string | null) => {
+      set({ isLoading: true, error: null });
+      try {
+        const tokenData = await authRepository.loginWithApple(identityToken, name);
+        await SecureStorage.setToken(tokenData.token);
+        const user = await authRepository.me();
+        set({ user, token: tokenData.token, isAuthenticated: true, isLoading: false });
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : 'Erro ao entrar com Apple. Tente novamente.';
         set({ error: message, isLoading: false, isAuthenticated: false });
         throw e;
       }

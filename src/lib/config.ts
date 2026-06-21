@@ -8,3 +8,8 @@ export const API_URL: string = extra.apiUrl ?? 'https://api.tiron.com.br';
 export const WEB_URL: string = extra.webUrl ?? 'https://tasks.tiron.com.br';
 export const APP_VERSION: string = Constants.expoConfig?.version ?? '1.0.0';
 export const APP_NAME: string = Constants.expoConfig?.name ?? 'Tiron Tasks';
+
+// Client IDs PÚBLICOS do Google OAuth (não são segredos — o client secret fica
+// somente no backend). Usados para configurar o @react-native-google-signin.
+export const GOOGLE_WEB_CLIENT_ID: string = extra.googleWebClientId ?? '';
+export const GOOGLE_IOS_CLIENT_ID: string = extra.googleIosClientId ?? '';
