@@ -58,6 +58,7 @@
     },
     "extra": {
       "apiUrl": "https://api.tiron.com.br",
+      "webUrl": "https://app.tiron.com.br",
       "eas": {
         "projectId": "c63cddf2-8ce3-4109-99f8-c0f7782f09e7"
       }

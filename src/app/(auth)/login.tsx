@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/store/auth-store';
 import { Text } from '@/components/ui/Text';
 import { Colors } from '@/constants/colors';
@@ -29,6 +30,10 @@ export default function LoginScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const { login, isLoading, error, clearError } = useAuthStore();
+
+  // Aviso de sucesso vindo de outras telas (ex.: redefinição de senha).
+  const params = useLocalSearchParams<{ notice?: string }>();
+  const [notice, setNotice] = useState<string | null>(params.notice ?? null);
 
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
@@ -132,6 +137,13 @@ export default function LoginScreen() {
               { backgroundColor: cardBg, opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
             ]}
           >
+            {notice ? (
+              <View style={styles.noticeBox}>
+                <Ionicons name="checkmark-circle-outline" size={16} color={Colors.success} style={{ marginRight: 6 }} />
+                <Text style={styles.noticeText}>{notice}</Text>
+              </View>
+            ) : null}
+
             <Text style={[styles.label, { color: theme.textSecondary }]}>Email</Text>
             <View
               style={[
@@ -157,7 +169,7 @@ export default function LoginScreen() {
                 placeholder="seu@email.com"
                 placeholderTextColor={theme.textTertiary}
                 value={email}
-                onChangeText={(t) => { setEmail(t); clearError(); }}
+                onChangeText={(t) => { setEmail(t); clearError(); setNotice(null); }}
                 onFocus={() => setEmailFocused(true)}
                 onBlur={() => setEmailFocused(false)}
                 autoCapitalize="none"
@@ -230,6 +242,20 @@ export default function LoginScreen() {
                 </>
               )}
             </Pressable>
+
+            {/* Links de navegação: cadastro e recuperação de senha */}
+            <View style={styles.authLinks}>
+              <Link href="/(auth)/register" asChild>
+                <Pressable hitSlop={8}>
+                  <Text style={styles.authLink}>Criar conta</Text>
+                </Pressable>
+              </Link>
+              <Link href="/(auth)/forgot-password" asChild>
+                <Pressable hitSlop={8}>
+                  <Text style={styles.authLink}>Esqueci minha senha</Text>
+                </Pressable>
+              </Link>
+            </View>
 
             {/* OAuth — stubs (em breve) */}
             <View style={styles.divider}>
@@ -462,6 +488,36 @@ const styles = StyleSheet.create({
     fontSize: FontSize.base,
     fontWeight: FontWeight.semibold as '600',
     letterSpacing: 0.3,
+  },
+
+  // Notice de sucesso (ex.: senha redefinida)
+  noticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    borderRadius: Radius.md,
+    padding: Spacing[3],
+    marginBottom: Spacing[4],
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.25)',
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.success,
+  },
+
+  // Links de auth (criar conta / esqueci senha)
+  authLinks: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing[4],
+  },
+  authLink: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: FontWeight.medium as '500',
   },
 
   // Divider

@@ -15,6 +15,19 @@ export const authRepository = {
     return res.data;
   },
 
+  async register(
+    name: string,
+    email: string,
+    password: string,
+  ): Promise<TokenResponse> {
+    const res = await apiClient.post<SingleResponse<TokenResponse>>(
+      '/api/v1/auth/register',
+      { name, email, password },
+      { skipAuth: true },
+    );
+    return res.data;
+  },
+
   async logout(): Promise<void> {
     await apiClient.post('/api/v1/auth/logout');
   },

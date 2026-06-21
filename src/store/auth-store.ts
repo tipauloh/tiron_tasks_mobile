@@ -20,6 +20,7 @@ interface AuthState {
 
   restoreSession: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
   updateUser: (partial: Partial<Pick<AuthUser, 'name' | 'email'>>) => void;
@@ -67,6 +68,21 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch (e: unknown) {
         const message =
           e instanceof Error ? e.message : 'Erro ao fazer login. Tente novamente.';
+        set({ error: message, isLoading: false, isAuthenticated: false });
+        throw e;
+      }
+    },
+
+    register: async (name: string, email: string, password: string) => {
+      set({ isLoading: true, error: null });
+      try {
+        const tokenData = await authRepository.register(name, email, password);
+        await SecureStorage.setToken(tokenData.token);
+        const user = await authRepository.me();
+        set({ user, token: tokenData.token, isAuthenticated: true, isLoading: false });
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : 'Erro ao criar conta. Tente novamente.';
         set({ error: message, isLoading: false, isAuthenticated: false });
         throw e;
       }

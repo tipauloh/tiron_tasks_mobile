@@ -50,7 +50,20 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     let detail = `Erro ${response.status}`;
     try {
       const errorBody = await response.json();
-      detail = errorBody?.detail ?? detail;
+      // Laravel/FastAPI usam shapes diferentes: `detail` (FastAPI) ou
+      // `message` + `errors` (validação 422). Tentamos o mais específico.
+      const firstFieldError =
+        errorBody?.errors && typeof errorBody.errors === 'object'
+          ? (Object.values(errorBody.errors)[0] as unknown)
+          : undefined;
+      const firstFieldMessage = Array.isArray(firstFieldError)
+        ? firstFieldError[0]
+        : firstFieldError;
+      detail =
+        errorBody?.detail ??
+        firstFieldMessage ??
+        errorBody?.message ??
+        detail;
     } catch {
       // ignore parse error
     }
