@@ -58,6 +58,14 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.34061133858-pfep7d0ojvi728dh1scf6ubq8ggvfre4"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
       ]
     ],
     "experiments": {
