@@ -76,7 +76,8 @@
   2. ✅ **webUrl confirmado:** `https://tasks.tiron.com.br`.
   3. **SMTP:** seed das settings gravou os valores atuais do `.env` (driver `log` — "config teste"). Trocar para `smtp` real na tela de Configurações quando quiser e-mail de verdade.
   4. ✅ **OTA das telas de auth publicado:** update group `ffedd494-4d67-495f-badf-a0ea3bd06487`.
-  5. ⏳ **Falta só o DEPLOY dos backends** (app_api com `/register`+fix; app_web com Configurações+reset) para o cadastro/reset funcionarem ponta a ponta. Fora do alcance do agente (acesso ao servidor).
+  5. ✅ **DEPLOY concluído (2026-06-21)** via SSH porta 8022 no VPS. app_web: `git pull` + migrations (`settings`, `mobile_password_reset_tokens`) + seed `manage-settings` + clear cache. app_api: `rsync` do código + `docker compose up -d --build`. **Validado ponta a ponta:** `POST /auth/register` → 201+token; `GET /me` → 200 (fix mobile_users OK); `/api/mobile/password/forgot` → 200; `/admin/settings` → 302. Usuário de teste removido. Ver `[[reference_vps_deploy]]`.
+  6. SMTP segue em `log` (config teste) — trocar para `smtp` na tela de Configurações quando quiser e-mail real. Testes do app_api ainda usam fixtures em `users` (não afeta produção).
 
 ### Configurações + SMTP no app_web (base do reset)
 - Tabela `settings` + `Admin/SettingController` + permissão `manage-settings` + menu + `SettingsServiceProvider` (injeta SMTP em runtime). Ver `app_web` (commit próprio).
