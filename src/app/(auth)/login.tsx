@@ -264,22 +264,10 @@ export default function LoginScreen() {
               <View style={[styles.dividerLine, { backgroundColor: borderDefault }]} />
             </View>
 
+            {/* OAuth — Apple primeiro, Google segundo, lado a lado e compactos.
+               Desabilitados até a build com os SDKs nativos (expo-apple-authentication / google-signin). */}
             <View style={styles.oauthRow}>
-              {/* Google — botão branco + "G" colorido (Google Brand Guidelines). Desabilitado até configurar OAuth. */}
-              <Pressable
-                style={[styles.oauthBtn, styles.oauthBtnDisabled, { backgroundColor: '#FFFFFF', borderColor: '#DADCE0' }]}
-                disabled
-                accessibilityRole="button"
-                accessibilityLabel="Continuar com Google (em breve)"
-              >
-                <View style={styles.oauthContent}>
-                  <Image source={require('../../../assets/images/google-logo.png')} style={styles.oauthLogo} resizeMode="contain" />
-                  <Text style={[styles.oauthBtnText, { color: '#3C4043' }]}>Continuar com Google</Text>
-                </View>
-                <Text style={[styles.comingSoon, { color: theme.textTertiary, backgroundColor: isDark ? Colors.dark.surfaceElevated : Colors.light.surface }]}>Em breve</Text>
-              </Pressable>
-
-              {/* Apple — botão preto + logo Apple (Sign in with Apple guidelines). Desabilitado até configurar. */}
+              {/* Apple — botão preto + logo (Sign in with Apple guidelines). iOS apenas. */}
               {Platform.OS === 'ios' && (
                 <Pressable
                   style={[styles.oauthBtn, styles.oauthBtnDisabled, { backgroundColor: '#000000', borderColor: '#000000' }]}
@@ -287,14 +275,23 @@ export default function LoginScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Continuar com Apple (em breve)"
                 >
-                  <View style={styles.oauthContent}>
-                    <Ionicons name="logo-apple" size={18} color="#FFFFFF" style={{ marginRight: Spacing[2] }} />
-                    <Text style={[styles.oauthBtnText, { color: '#FFFFFF' }]}>Continuar com Apple</Text>
-                  </View>
-                  <Text style={[styles.comingSoon, { color: '#FFFFFF', backgroundColor: 'rgba(255,255,255,0.18)' }]}>Em breve</Text>
+                  <Ionicons name="logo-apple" size={18} color="#FFFFFF" />
+                  <Text style={[styles.oauthBtnText, { color: '#FFFFFF' }]}>Apple</Text>
                 </Pressable>
               )}
+
+              {/* Google — botão branco + "G" colorido (Google Brand Guidelines). */}
+              <Pressable
+                style={[styles.oauthBtn, styles.oauthBtnDisabled, { backgroundColor: '#FFFFFF', borderColor: '#DADCE0' }]}
+                disabled
+                accessibilityRole="button"
+                accessibilityLabel="Continuar com Google (em breve)"
+              >
+                <Image source={require('../../../assets/images/google-logo.png')} style={styles.oauthLogo} resizeMode="contain" />
+                <Text style={[styles.oauthBtnText, { color: '#3C4043' }]}>Google</Text>
+              </Pressable>
             </View>
+            <Text style={[styles.oauthHint, { color: theme.textTertiary }]}>Em breve</Text>
           </Animated.View>
 
           {/* Rodapé discreto: versão + OTA build */}
@@ -537,40 +534,36 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // OAuth
+  // OAuth — botões lado a lado e compactos
   oauthRow: {
+    flexDirection: 'row',
     gap: Spacing[3],
   },
   oauthBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: Spacing[2],
     borderWidth: 1,
     borderRadius: Radius.lg,
-    paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[3],
   },
   oauthBtnDisabled: {
     opacity: 0.6,
   },
-  oauthContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   oauthLogo: {
     width: 18,
     height: 18,
-    marginRight: Spacing[2],
   },
   oauthBtnText: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.medium as '500',
   },
-  comingSoon: {
+  oauthHint: {
     fontSize: FontSize.xs,
-    paddingHorizontal: Spacing[2],
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
+    textAlign: 'center',
+    marginTop: Spacing[2],
   },
 
   // Footer
