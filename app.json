@@ -66,7 +66,8 @@
             "useFrameworks": "static"
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -77,6 +78,7 @@
       "webUrl": "https://tasks.tiron.com.br",
       "googleWebClientId": "34061133858-82kh9v3vvetbuj1dt1fljq3tsscne38m.apps.googleusercontent.com",
       "googleIosClientId": "34061133858-pfep7d0ojvi728dh1scf6ubq8ggvfre4.apps.googleusercontent.com",
+      "microsoftClientId": "135c417a-71ba-4f72-964a-b535bf441905",
       "eas": {
         "projectId": "c63cddf2-8ce3-4109-99f8-c0f7782f09e7"
       }

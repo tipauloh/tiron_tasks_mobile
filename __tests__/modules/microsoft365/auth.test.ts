@@ -1,0 +1,174 @@
+/**
+ * Testes da camada de auth (OAuth PKCE): troca code→token e refresh.
+ * Mocka fetch, expo-secure-store e expo-auth-session/web-browser/crypto.
+ */
+
+// ── Mocks de módulos nativos do Expo ────────────────────────────────────────
+
+const secureStore: Record<string, string> = {};
+
+jest.mock('expo-secure-store', () => ({
+  setItemAsync: jest.fn(async (k: string, v: string) => {
+    secureStore[k] = v;
+  }),
+  getItemAsync: jest.fn(async (k: string) => secureStore[k] ?? null),
+  deleteItemAsync: jest.fn(async (k: string) => {
+    delete secureStore[k];
+  }),
+}));
+
+jest.mock('expo-web-browser', () => ({
+  maybeCompleteAuthSession: jest.fn(),
+}));
+
+jest.mock('expo-auth-session', () => ({
+  makeRedirectUri: jest.fn(() => 'tirontasks://auth/microsoft'),
+  ResponseType: { Code: 'code' },
+  Prompt: { SelectAccount: 'select_account' },
+  AuthRequest: jest.fn(),
+}));
+
+jest.mock('../../../src/lib/config', () => ({
+  MICROSOFT_CLIENT_ID: 'test-client-id',
+}));
+
+import {
+  exchangeCodeForTokens,
+  getValidAccessToken,
+  signOut,
+  getRedirectUri,
+  MicrosoftReauthRequiredError,
+} from '../../../src/modules/microsoft365/auth';
+import { SECURE_KEYS } from '../../../src/modules/microsoft365/constants';
+
+const EXP_KEY = `${SECURE_KEYS.accessToken}_exp`;
+
+function clearStore() {
+  for (const k of Object.keys(secureStore)) delete secureStore[k];
+}
+
+function mockFetchOnce(status: number, body: unknown) {
+  (global.fetch as any).mockResolvedValueOnce({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  });
+}
+
+beforeEach(() => {
+  clearStore();
+  global.fetch = jest.fn();
+  jest.clearAllMocks();
+});
+
+describe('auth.getRedirectUri', () => {
+  it('resolve para o custom scheme tirontasks://auth/microsoft', () => {
+    expect(getRedirectUri()).toBe('tirontasks://auth/microsoft');
+  });
+});
+
+describe('auth.exchangeCodeForTokens', () => {
+  it('troca code + verifier por tokens e persiste no secure store', async () => {
+    mockFetchOnce(200, {
+      access_token: 'AT-1',
+      refresh_token: 'RT-1',
+      expires_in: 3600,
+    });
+
+    const tokens = await exchangeCodeForTokens('the-code', 'the-verifier', 'tirontasks://auth/microsoft');
+
+    expect(tokens.accessToken).toBe('AT-1');
+    expect(tokens.refreshToken).toBe('RT-1');
+    expect(secureStore[SECURE_KEYS.accessToken]).toBe('AT-1');
+    expect(secureStore[SECURE_KEYS.refreshToken]).toBe('RT-1');
+    expect(Number(secureStore[EXP_KEY])).toBeGreaterThan(Date.now());
+
+    // Verifica que o POST usou authorization_code SEM client_secret.
+    const [url, init] = (global.fetch as any).mock.calls[0];
+    expect(url).toContain('/oauth2/v2.0/token');
+    expect(init.method).toBe('POST');
+    expect(init.body).toContain('grant_type=authorization_code');
+    expect(init.body).toContain('code_verifier=the-verifier');
+    expect(init.body).not.toContain('client_secret');
+  });
+
+  it('lança erro quando o token endpoint retorna erro OAuth', async () => {
+    mockFetchOnce(400, { error: 'invalid_grant', error_description: 'bad' });
+    await expect(
+      exchangeCodeForTokens('x', 'y', 'tirontasks://auth/microsoft'),
+    ).rejects.toThrow('invalid_grant');
+    expect(secureStore[SECURE_KEYS.accessToken]).toBeUndefined();
+  });
+});
+
+describe('auth.getValidAccessToken', () => {
+  it('retorna o token atual quando ainda válido (sem refresh)', async () => {
+    secureStore[SECURE_KEYS.accessToken] = 'AT-valid';
+    secureStore[SECURE_KEYS.refreshToken] = 'RT-1';
+    secureStore[EXP_KEY] = String(Date.now() + 10 * 60 * 1000);
+
+    const token = await getValidAccessToken();
+    expect(token).toBe('AT-valid');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('renova via refresh_token quando expirado', async () => {
+    secureStore[SECURE_KEYS.accessToken] = 'AT-old';
+    secureStore[SECURE_KEYS.refreshToken] = 'RT-old';
+    secureStore[EXP_KEY] = String(Date.now() - 1000); // expirado
+
+    mockFetchOnce(200, {
+      access_token: 'AT-new',
+      refresh_token: 'RT-new',
+      expires_in: 3600,
+    });
+
+    const token = await getValidAccessToken();
+    expect(token).toBe('AT-new');
+    expect(secureStore[SECURE_KEYS.accessToken]).toBe('AT-new');
+    expect(secureStore[SECURE_KEYS.refreshToken]).toBe('RT-new');
+
+    const [, init] = (global.fetch as any).mock.calls[0];
+    expect(init.body).toContain('grant_type=refresh_token');
+    expect(init.body).toContain('refresh_token=RT-old');
+  });
+
+  it('preserva o refresh token anterior se o /token não rotacionar', async () => {
+    secureStore[SECURE_KEYS.accessToken] = 'AT-old';
+    secureStore[SECURE_KEYS.refreshToken] = 'RT-keep';
+    secureStore[EXP_KEY] = String(Date.now() - 1000);
+
+    mockFetchOnce(200, { access_token: 'AT-new2', expires_in: 3600 });
+
+    await getValidAccessToken();
+    expect(secureStore[SECURE_KEYS.refreshToken]).toBe('RT-keep');
+  });
+
+  it('limpa tokens e exige reconexão quando o refresh falha', async () => {
+    secureStore[SECURE_KEYS.accessToken] = 'AT-old';
+    secureStore[SECURE_KEYS.refreshToken] = 'RT-bad';
+    secureStore[EXP_KEY] = String(Date.now() - 1000);
+
+    mockFetchOnce(400, { error: 'invalid_grant' });
+
+    await expect(getValidAccessToken()).rejects.toBeInstanceOf(MicrosoftReauthRequiredError);
+    expect(secureStore[SECURE_KEYS.accessToken]).toBeUndefined();
+    expect(secureStore[SECURE_KEYS.refreshToken]).toBeUndefined();
+  });
+
+  it('exige reconexão quando não há sessão', async () => {
+    await expect(getValidAccessToken()).rejects.toBeInstanceOf(MicrosoftReauthRequiredError);
+  });
+});
+
+describe('auth.signOut', () => {
+  it('apaga todos os tokens do secure store', async () => {
+    secureStore[SECURE_KEYS.accessToken] = 'AT';
+    secureStore[SECURE_KEYS.refreshToken] = 'RT';
+    secureStore[EXP_KEY] = '123';
+    await signOut();
+    expect(secureStore[SECURE_KEYS.accessToken]).toBeUndefined();
+    expect(secureStore[SECURE_KEYS.refreshToken]).toBeUndefined();
+    expect(secureStore[EXP_KEY]).toBeUndefined();
+  });
+});

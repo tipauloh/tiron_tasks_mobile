@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { checkAndApplyUpdate } from '@/lib/updates';
 import { queryClient } from '@/lib/query-client';
 import { configureNotificationHandler } from '@/lib/notifications';
+import { useMicrosoft365AutoSync } from '@/modules/microsoft365/hooks';
 
 // Configura o handler de notificações o quanto antes (mostra banner em foreground).
 configureNotificationHandler();
@@ -17,6 +18,10 @@ function AuthGuard() {
   const segments = useSegments();
   const router = useRouter();
   const appState = useRef<AppStateStatus>(AppState.currentState);
+
+  // Agenda o sync automático do Microsoft 365 (guard interno: só se conectado e
+  // passado o intervalo). Não trava a UI nem navega.
+  useMicrosoft365AutoSync();
 
   // Verifica OTA silenciosamente em background
   const runOtaCheck = () => {

@@ -59,3 +59,5 @@ export function useMicrosoftSync() {
     onSuccess: () => invalidateAll(qc),
   });
 }
+
+export { useMicrosoft365AutoSync } from './use-auto-sync';

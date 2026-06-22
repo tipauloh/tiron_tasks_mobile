@@ -219,5 +219,13 @@ export class MockMicrosoft365Service implements Microsoft365Service {
   }
 }
 
-/** Instância padrão usada pelos hooks. Trocar por implementação real depois. */
-export const microsoft365Service: Microsoft365Service = new MockMicrosoft365Service();
+/**
+ * Instância padrão usada pelos hooks/UI.
+ *
+ * Agora aponta para a implementação REAL (OAuth PKCE + Microsoft Graph). O mock
+ * acima permanece exportado para testes/desenvolvimento. A interface
+ * `Microsoft365Service` é a mesma, então a UI/hooks não mudam.
+ */
+import { realMicrosoft365Service } from './real-microsoft365.service';
+
+export const microsoft365Service: Microsoft365Service = realMicrosoft365Service;

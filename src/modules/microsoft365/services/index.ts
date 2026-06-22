@@ -5,6 +5,10 @@ export {
   type ConnectionState,
 } from './microsoft365.service';
 export {
+  RealMicrosoft365Service,
+  realMicrosoft365Service,
+} from './real-microsoft365.service';
+export {
   summarizeEmail,
   SUMMARY_MIN_CHARS,
   SUMMARY_MAX_CHARS,

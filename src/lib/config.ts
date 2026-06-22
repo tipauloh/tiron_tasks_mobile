@@ -13,3 +13,8 @@ export const APP_NAME: string = Constants.expoConfig?.name ?? 'Tiron Tasks';
 // somente no backend). Usados para configurar o @react-native-google-signin.
 export const GOOGLE_WEB_CLIENT_ID: string = extra.googleWebClientId ?? '';
 export const GOOGLE_IOS_CLIENT_ID: string = extra.googleIosClientId ?? '';
+
+// Client ID PÚBLICO do Microsoft Entra App Registration (não é segredo — o app
+// mobile é public client e usa PKCE por sessão). Ver
+// docs/integrations/microsoft365/authentication.md.
+export const MICROSOFT_CLIENT_ID: string = extra.microsoftClientId ?? '';
