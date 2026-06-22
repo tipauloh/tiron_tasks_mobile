@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Swipeable, Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Swipeable } from 'react-native-gesture-handler';
 import ReorderableList, {
   reorderItems,
   useReorderableDrag,
@@ -145,11 +145,11 @@ function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLa
 }
 
 // ─── ReorderableTaskCell ─────────────────────────────────────────────────────
-// Célula de tarefa PENDENTE arrastável. Usa o padrão canônico da lib —
-// `Pressable onLongPress={drag}` (RN core, dentro do Swipeable). O long-press só
-// ATIVA o item; quem segue o dedo é o pan interno da lib (na lista), que o
-// Pressable não cancela — por isso o MESMO toque já arrasta. (Um `Gesture.LongPress`
-// do gesture-handler, por ser concorrente, mataria esse pan e exigiria 2º toque.)
+// Célula de tarefa PENDENTE arrastável por um PUNHO de arraste (⠿) dedicado, FORA
+// do Swipeable. O punho usa `Pressable onPressIn={drag}` (RN core): toca e já
+// arrasta no MESMO toque, porque o Pressable não cancela o pan interno da lib
+// (ao contrário do Gesture.LongPress) e, por estar fora do Swipeable, não disputa
+// o gesto com o swipe-to-delete. O highlight (cor) do item ativo vem de cellAnimations.
 function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: {
   task: ReturnType<typeof apiTaskToLegacy>;
   onToggle: () => void;
@@ -157,21 +157,27 @@ function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: 
   onFavorite: () => void;
   onDelete: () => void;
 }) {
+  const { theme } = useTheme();
   const drag = useReorderableDrag();
-  const longPress = useMemo(
-    () => Gesture.LongPress().minDuration(180).runOnJS(true).onStart(() => drag()),
-    [drag],
-  );
   return (
-    <GestureDetector gesture={longPress}>
-      <TaskItemSwipeable
-        task={task}
-        onToggle={onToggle}
-        onPress={onPress}
-        onFavorite={onFavorite}
-        onDelete={onDelete}
-      />
-    </GestureDetector>
+    <View style={styles.reorderRow}>
+      <View style={styles.reorderContent}>
+        <TaskItemSwipeable
+          task={task}
+          onToggle={onToggle}
+          onPress={onPress}
+          onFavorite={onFavorite}
+          onDelete={onDelete}
+        />
+      </View>
+      <Pressable
+        onPressIn={() => drag()}
+        hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+        style={styles.dragHandle}
+      >
+        <Text style={[styles.dragHandleIcon, { color: theme.colors.textSecondary }]}>⠿</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -599,6 +605,12 @@ const styles = StyleSheet.create({
   listTabText: { fontSize: 13, fontWeight: '500' },
   actionTab: { borderStyle: 'dashed' },
   editIcon: { fontSize: 13 },
+
+  // Reorder (arraste) — linha com o punho (⠿) à direita, fora do Swipeable.
+  reorderRow: { flexDirection: 'row', alignItems: 'stretch' },
+  reorderContent: { flex: 1 },
+  dragHandle: { paddingHorizontal: 14, justifyContent: 'center', alignItems: 'center' },
+  dragHandleIcon: { fontSize: 20, fontWeight: '800', letterSpacing: -2 },
 
   // Reorder (arraste) — "slot" suave (cor + contorno tracejado) no destino.
   dropIndicator: {

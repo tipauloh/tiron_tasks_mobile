@@ -162,3 +162,9 @@ Raiz do "2º clique": o pan que move o item vive na LISTA (Gesture.Pan da lib); 
 
 ### FIX-UX-003c revertido — Pressable não dispara dentro do Swipeable (2026-06-22)
 A tentativa `Pressable onLongPress={drag}` (RN core) DENTRO do Swipeable também não dispara o drag (o gesture-handler do Swipeable bloqueia o toque do RN core). Revertido para `Gesture.LongPress` (gesture-handler) que FUNCIONA, porém com "2º toque" (o LongPress cancela o pan interno da lib). CONCLUSÃO: com Swipeable na mesma linha, mesmo-toque puro não é viável sem redesenho — caminho definitivo seria um "drag handle" dedicado. Estado estável atual = Gesture.LongPress (minDuration 180) + cor + slot.
+
+### Ajuste — ícone da lista "E-mail Sinalizados" (2026-06-22)
+A lista era criada com `icon='flag'` (string), mas o app renderiza o ícone como emoji (`<Text>{list.icon}</Text>`) → aparecia o texto "flag". Trocado para 🚩 no backend (`task_service._get_or_create_email_list`, deployado VPS) + `UPDATE task_lists SET icon='🚩'` na lista já existente (DB produção). App reflete após refresh das listas.
+
+### FEAT-DRAG-HANDLE — Punho de arraste (mesmo toque, definitivo) (2026-06-22)
+Adicionado punho ⠿ dedicado à direita de cada tarefa pendente arrastável, FORA do Swipeable. Usa `Pressable onPressIn={() => drag()}` (RN core): toca e já arrasta no MESMO toque — o Pressable não cancela o pan interno da lib (≠ Gesture.LongPress) e, fora do Swipeable, não disputa com o swipe-to-delete. Resolve de vez o "2º toque". Mantém highlight por cor (cellAnimations) + slot no destino. ReorderableTaskCell virou View[reorderContent flex:1 + dragHandle].
