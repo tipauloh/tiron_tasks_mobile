@@ -158,6 +158,17 @@ export default function ProfileScreen() {
           />
         </Card>
 
+        {/* Integrações */}
+        <Card style={styles.section}>
+          <Text variant="label" secondary style={styles.sectionTitle}>INTEGRAÇÕES</Text>
+          <RowItem
+            icon="🪟"
+            label="Microsoft 365"
+            value="Tarefas e e-mails sinalizados"
+            onPress={() => router.push('/microsoft365' as never)}
+          />
+        </Card>
+
         {/* Info */}
         <Card style={styles.section}>
           <Text variant="label" secondary style={styles.sectionTitle}>INFORMAÇÕES</Text>

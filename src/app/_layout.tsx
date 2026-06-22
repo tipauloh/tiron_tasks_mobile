@@ -102,6 +102,10 @@ export default function RootLayout() {
           name="edit-lists"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
+        <Stack.Screen
+          name="microsoft365"
+          options={{ presentation: 'card', animation: 'slide_from_right' }}
+        />
       </Stack>
     </QueryClientProvider>
   );
