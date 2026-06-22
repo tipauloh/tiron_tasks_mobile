@@ -7,7 +7,17 @@
 import { setEmailFlagComplete, setEmailFlagFlagged } from '../graph';
 import { hasStoredSession, MicrosoftReauthRequiredError } from '../auth';
 import { GraphError } from '../graph/client';
+import { microsoftAccountRepository } from '../repositories';
 import { ms365Logger } from '../utils/logger';
+
+/** Compat. retro: acha a 1ª conta com sessão armazenada quando o accountId é desconhecido. */
+async function resolveAnyAccountId(): Promise<string | null> {
+  const accounts = microsoftAccountRepository.getAccounts();
+  for (const account of accounts) {
+    if (await hasStoredSession(account.id)) return account.id;
+  }
+  return null;
+}
 
 export interface MirrorResult {
   ok: boolean;
@@ -17,22 +27,28 @@ export interface MirrorResult {
 }
 
 /**
- * Reflete a conclusão (ou reabertura) da tarefa no e-mail vinculado:
+ * Reflete a conclusão (ou reabertura) da tarefa no e-mail vinculado da CONTA:
  * `completed` → flag 'complete'; senão → volta a 'flagged'.
+ *
+ * MULTI-CONTA: o `accountId` (= external_account_id da tarefa) diz qual conta
+ * Microsoft é dona do e-mail. Se ausente (compat. retro com tarefas antigas),
+ * tenta a primeira conta que tiver sessão armazenada.
  */
 export async function mirrorTaskCompletionToEmail(
   messageId: string,
   completed: boolean,
+  accountId?: string,
 ): Promise<MirrorResult> {
   try {
+    const resolvedAccountId = accountId ?? (await resolveAnyAccountId());
     // Sem sessão Microsoft ativa não há o que espelhar (conta desconectada).
-    if (!(await hasStoredSession())) {
+    if (!resolvedAccountId || !(await hasStoredSession(resolvedAccountId))) {
       return { ok: false, needsReconnect: false };
     }
     if (completed) {
-      await setEmailFlagComplete(messageId);
+      await setEmailFlagComplete(messageId, resolvedAccountId);
     } else {
-      await setEmailFlagFlagged(messageId);
+      await setEmailFlagFlagged(messageId, resolvedAccountId);
     }
     return { ok: true, needsReconnect: false };
   } catch (err) {

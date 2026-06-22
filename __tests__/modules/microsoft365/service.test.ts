@@ -14,19 +14,23 @@ jest.mock('../../../src/utils/id', () => ({
 // Mock dos repositórios. A factory cria os objetos INTERNAMENTE (evita TDZ com
 // os imports hoisted) e os expõe via o próprio módulo importado abaixo.
 jest.mock('../../../src/modules/microsoft365/repositories', () => {
-  const holder: { stored: any } = { stored: null };
+  const holder: { accounts: any[] } = { accounts: [] };
   return {
     __holder: holder,
     microsoftAccountRepository: {
-      getAccount: jest.fn(() => holder.stored),
+      getAccounts: jest.fn(() => holder.accounts),
+      getAccountById: jest.fn((id: string) => holder.accounts.find((a) => a.id === id) ?? null),
       saveAccount: jest.fn((acc: any) => {
-        holder.stored = acc;
+        const idx = holder.accounts.findIndex((a) => a.id === acc.id);
+        if (idx >= 0) holder.accounts[idx] = acc;
+        else holder.accounts.push(acc);
       }),
-      setLastSyncAt: jest.fn((_id: string, ts: number) => {
-        if (holder.stored) holder.stored.lastSyncAt = ts;
+      setLastSyncAt: jest.fn((id: string, ts: number) => {
+        const acc = holder.accounts.find((a) => a.id === id);
+        if (acc) acc.lastSyncAt = ts;
       }),
-      clearAccount: jest.fn(() => {
-        holder.stored = null;
+      clearAccount: jest.fn((id: string) => {
+        holder.accounts = holder.accounts.filter((a) => a.id !== id);
       }),
     },
     microsoft365ItemRepository: {
@@ -47,15 +51,15 @@ import * as reposModule from '../../../src/modules/microsoft365/repositories';
 const accountRepo = (reposModule as any).microsoftAccountRepository;
 const itemRepo = (reposModule as any).microsoft365ItemRepository;
 const deltaRepo = (reposModule as any).deltaTokenRepository;
-const holder = (reposModule as any).__holder as { stored: any };
+const holder = (reposModule as any).__holder as { accounts: any[] };
 
 function setStoredAccount(acc: any) {
-  holder.stored = acc;
+  holder.accounts = [acc];
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
-  holder.stored = null;
+  holder.accounts = [];
 });
 
 describe('MockMicrosoft365Service', () => {
@@ -65,7 +69,7 @@ describe('MockMicrosoft365Service', () => {
     it('reporta desconectado quando não há conta', () => {
       const state = service.getConnectionState();
       expect(state.isConnected).toBe(false);
-      expect(state.account).toBeNull();
+      expect(state.accounts).toEqual([]);
     });
 
     it('reporta conectado e contadores quando há conta', () => {
@@ -73,6 +77,7 @@ describe('MockMicrosoft365Service', () => {
       itemRepo.countItems.mockReturnValueOnce(2).mockReturnValueOnce(3);
       const state = service.getConnectionState();
       expect(state.isConnected).toBe(true);
+      expect(state.accounts).toHaveLength(1);
       expect(state.emailCount).toBe(2);
       expect(state.taskCount).toBe(3);
       expect(state.lastSyncAt).toBe(42);
@@ -90,15 +95,15 @@ describe('MockMicrosoft365Service', () => {
 
   describe('disconnect', () => {
     it('remove conta e dados quando removeData=true', async () => {
-      await service.disconnect(true);
-      expect(accountRepo.clearAccount).toHaveBeenCalled();
-      expect(itemRepo.clearItems).toHaveBeenCalled();
-      expect(deltaRepo.clearDeltaToken).toHaveBeenCalled();
+      await service.disconnect('acc-1', true);
+      expect(accountRepo.clearAccount).toHaveBeenCalledWith('acc-1');
+      expect(itemRepo.clearItems).toHaveBeenCalledWith({ accountId: 'acc-1' });
+      expect(deltaRepo.clearDeltaToken).toHaveBeenCalledWith('acc-1');
     });
 
     it('mantém histórico local quando removeData=false', async () => {
-      await service.disconnect(false);
-      expect(accountRepo.clearAccount).toHaveBeenCalled();
+      await service.disconnect('acc-1', false);
+      expect(accountRepo.clearAccount).toHaveBeenCalledWith('acc-1');
       expect(itemRepo.clearItems).not.toHaveBeenCalled();
       expect(deltaRepo.clearDeltaToken).not.toHaveBeenCalled();
     });

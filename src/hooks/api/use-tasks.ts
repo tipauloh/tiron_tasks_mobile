@@ -132,6 +132,9 @@ export function useToggleTaskStatus() {
         void mirrorTaskCompletionToEmail(
           t.external_email_id,
           t.status === 'completed',
+          // MULTI-CONTA: espelha na conta correta. Se ausente (tarefa antiga),
+          // o mirror usa qualquer sessão armazenada (compat. retro).
+          t.external_account_id ?? undefined,
         ).then((r) => {
           if (r.needsReconnect) {
             Alert.alert(

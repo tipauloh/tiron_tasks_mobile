@@ -37,7 +37,7 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['tasks'] });
 }
 
-/** Conecta a conta (mock). */
+/** Conecta uma conta (MULTI-CONTA: adiciona uma nova conta). */
 export function useMicrosoftConnect() {
   const qc = useQueryClient();
   return useMutation({
@@ -46,20 +46,21 @@ export function useMicrosoftConnect() {
   });
 }
 
-/** Desconecta a conta, removendo ou mantendo dados locais. */
+/** Desconecta UMA conta (por accountId), removendo ou mantendo dados locais. */
 export function useMicrosoftDisconnect() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (removeData: boolean) => microsoft365Service.disconnect(removeData),
+    mutationFn: ({ accountId, removeData }: { accountId: string; removeData: boolean }) =>
+      microsoft365Service.disconnect(accountId, removeData),
     onSuccess: () => invalidateAll(qc),
   });
 }
 
-/** Dispara uma sincronização. */
+/** Dispara uma sincronização (de uma conta, se accountId for passado; senão de todas). */
 export function useMicrosoftSync() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => microsoft365Service.syncNow(),
+    mutationFn: (accountId?: string) => microsoft365Service.syncNow(accountId),
     onSuccess: () => invalidateAll(qc),
   });
 }

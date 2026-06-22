@@ -39,8 +39,9 @@ describe('mapGraphMessageToItem', () => {
   };
 
   it('mapeia campos básicos com sourceType EMAIL', () => {
-    const item = mapGraphMessageToItem(message, NOW);
+    const item = mapGraphMessageToItem(message, 'acc-1', NOW);
     expect(item.sourceType).toBe('EMAIL');
+    expect(item.accountId).toBe('acc-1');
     expect(item.externalId).toBe('AAMk-123');
     expect(item.title).toBe('Proposta comercial');
     expect(item.webLink).toBe('https://outlook.office.com/mail/AAMk-123');
@@ -48,7 +49,7 @@ describe('mapGraphMessageToItem', () => {
   });
 
   it('mapeia metadados de e-mail (from, isRead, flag, preview, receivedAt)', () => {
-    const item = mapGraphMessageToItem(message, NOW);
+    const item = mapGraphMessageToItem(message, 'acc-1', NOW);
     expect(item.emailFrom).toBe('ana@example.com');
     expect(item.emailIsRead).toBe(false);
     expect(item.emailFlagStatus).toBe('flagged');
@@ -58,19 +59,19 @@ describe('mapGraphMessageToItem', () => {
   });
 
   it('gera resumo dentro da faixa 100–300', () => {
-    const item = mapGraphMessageToItem(message, NOW);
+    const item = mapGraphMessageToItem(message, 'acc-1', NOW);
     expect(item.summary).not.toBeNull();
     expect(item.summary!.length).toBeGreaterThanOrEqual(100);
     expect(item.summary!.length).toBeLessThanOrEqual(300);
   });
 
   it('trata assunto nulo com fallback', () => {
-    const item = mapGraphMessageToItem({ ...message, subject: null }, NOW);
+    const item = mapGraphMessageToItem({ ...message, subject: null }, 'acc-1', NOW);
     expect(item.title).toBe('(sem assunto)');
   });
 
   it('define status read quando isRead=true', () => {
-    const item = mapGraphMessageToItem({ ...message, isRead: true }, NOW);
+    const item = mapGraphMessageToItem({ ...message, isRead: true }, 'acc-1', NOW);
     expect(item.status).toBe('read');
     expect(item.emailIsRead).toBe(true);
   });
@@ -87,7 +88,7 @@ describe('mapGraphTodoTaskToItem', () => {
   };
 
   it('mapeia campos com sourceType TODO_TASK', () => {
-    const item = mapGraphTodoTaskToItem(task, NOW);
+    const item = mapGraphTodoTaskToItem(task, 'acc-1', NOW);
     expect(item.sourceType).toBe('TODO_TASK');
     expect(item.externalId).toBe('task-1');
     expect(item.title).toBe('Enviar relatório');
@@ -97,19 +98,19 @@ describe('mapGraphTodoTaskToItem', () => {
   });
 
   it('não preenche campos específicos de e-mail', () => {
-    const item = mapGraphTodoTaskToItem(task, NOW);
+    const item = mapGraphTodoTaskToItem(task, 'acc-1', NOW);
     expect(item.emailFrom).toBeNull();
     expect(item.emailPreview).toBeNull();
     expect(item.summary).toBeNull();
   });
 
   it('mapeia importance ausente para prioridade null', () => {
-    const item = mapGraphTodoTaskToItem({ ...task, importance: undefined }, NOW);
+    const item = mapGraphTodoTaskToItem({ ...task, importance: undefined }, 'acc-1', NOW);
     expect(item.priority).toBeNull();
   });
 
   it('trata dueDateTime null', () => {
-    const item = mapGraphTodoTaskToItem({ ...task, dueDateTime: null }, NOW);
+    const item = mapGraphTodoTaskToItem({ ...task, dueDateTime: null }, 'acc-1', NOW);
     expect(item.dueDate).toBeNull();
   });
 });

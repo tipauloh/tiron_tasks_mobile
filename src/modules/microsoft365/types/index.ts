@@ -4,7 +4,9 @@ export type Microsoft365SourceType = 'EMAIL' | 'TODO_TASK';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
-/** Conta Microsoft conectada (1 por usuário do app). Tokens NÃO ficam aqui — só no Secure Store. */
+/** Conta Microsoft conectada (várias por usuário do app — MULTI-CONTA).
+ * `id` = profile.id da Microsoft (chave estável usada em todo lugar).
+ * Tokens NÃO ficam aqui — só no Secure Store (por accountId). */
 export interface MicrosoftAccount {
   id: string;
   userId: string; // id do usuário do app (mobile_user)
@@ -20,6 +22,8 @@ export interface MicrosoftAccount {
 /** Modelo unificado para exibição. */
 export interface Microsoft365Item {
   id: string;
+  /** Conta Microsoft de origem (= profile.id / MicrosoftAccount.id). */
+  accountId: string;
   externalId: string;
   sourceType: Microsoft365SourceType;
   title: string;

@@ -29,9 +29,12 @@ import { ms365Logger } from '../utils/logger';
 
 export interface ConnectionState {
   isConnected: boolean;
-  account: MicrosoftAccount | null;
+  /** MULTI-CONTA: todas as contas Microsoft conectadas. */
+  accounts: MicrosoftAccount[];
+  /** Total de itens EMAIL somando todas as contas. */
   emailCount: number;
   taskCount: number;
+  /** Sync mais recente entre as contas (epoch ms) ou null. */
   lastSyncAt: number | null;
 }
 
@@ -53,20 +56,22 @@ export interface Microsoft365Service {
   connect(userId: string): Promise<MicrosoftAccount>;
 
   /**
-   * Desconecta a conta.
-   * REAL: revoga/limpa tokens do Secure Store.
-   * @param removeData se true, apaga itens e delta tokens locais; se false,
-   *        mantém o histórico local mas remove a conta/tokens.
+   * Desconecta UMA conta (por accountId).
+   * REAL: revoga/limpa tokens do Secure Store daquela conta.
+   * @param accountId conta a desconectar (= MicrosoftAccount.id / profile.id).
+   * @param removeData se true, apaga itens e delta tokens locais DA CONTA; se
+   *        false, mantém o histórico local mas remove a conta/tokens.
    */
-  disconnect(removeData: boolean): Promise<void>;
+  disconnect(accountId: string, removeData: boolean): Promise<void>;
 
   /**
    * Sincroniza agora.
-   * REAL: garante access token válido (refresh se preciso), busca e-mails
-   * sinalizados (filtro Graph) + To Do (delta), mapeia e faz upsert.
+   * REAL: para cada conta (ou só `accountId` se informado), garante access token
+   * válido, busca e-mails sinalizados, mapeia (com accountId) e faz upsert.
    * MOCK: popula itens fake via mappers e atualiza lastSync.
+   * @param accountId se informado, sincroniza apenas essa conta; senão, todas.
    */
-  syncNow(): Promise<SyncResult>;
+  syncNow(accountId?: string): Promise<SyncResult>;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -130,32 +135,34 @@ const MOCK_GRAPH_TASKS: GraphTodoTask[] = [
 
 export class MockMicrosoft365Service implements Microsoft365Service {
   getConnectionState(): ConnectionState {
-    const account = microsoftAccountRepository.getAccount();
+    const accounts = microsoftAccountRepository.getAccounts();
+    const lastSyncAt = accounts.reduce<number | null>(
+      (max, a) => (a.lastSyncAt != null && (max == null || a.lastSyncAt > max) ? a.lastSyncAt : max),
+      null,
+    );
     return {
-      isConnected: account != null,
-      account,
-      emailCount: microsoft365ItemRepository.countItems('EMAIL'),
-      taskCount: microsoft365ItemRepository.countItems('TODO_TASK'),
-      lastSyncAt: account?.lastSyncAt ?? null,
+      isConnected: accounts.length > 0,
+      accounts,
+      emailCount: microsoft365ItemRepository.countItems({ sourceType: 'EMAIL' }),
+      taskCount: microsoft365ItemRepository.countItems({ sourceType: 'TODO_TASK' }),
+      lastSyncAt,
     };
   }
 
   async connect(userId: string): Promise<MicrosoftAccount> {
-    // TODO(auth): substituir por OAuth PKCE real (expo-auth-session):
-    //   1. authRequest.promptAsync() → code
-    //   2. trocar code+verifier por tokens em MS_TOKEN_ENDPOINT
-    //   3. salvar tokens no Secure Store (SECURE_KEYS)
-    //   4. GET /me (User.Read) para obter id/email/displayName reais
+    // MOCK: cria/atualiza uma conta fake (id estável = profile.id mockado).
     const now = Date.now();
+    const microsoftUserId = 'mock-ms-user-id';
+    const existing = microsoftAccountRepository.getAccountById(microsoftUserId);
     const account: MicrosoftAccount = {
-      id: generateId(),
+      id: microsoftUserId,
       userId,
-      microsoftUserId: 'mock-ms-user-id',
+      microsoftUserId,
       email: 'usuario.mock@outlook.com',
       displayName: 'Usuário Mock',
       tokenExpiresAt: now + 60 * 60 * 1000, // +1h (mock)
-      lastSyncAt: null,
-      createdAt: now,
+      lastSyncAt: existing?.lastSyncAt ?? null,
+      createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     };
     microsoftAccountRepository.saveAccount(account);
@@ -163,21 +170,21 @@ export class MockMicrosoft365Service implements Microsoft365Service {
     return account;
   }
 
-  async disconnect(removeData: boolean): Promise<void> {
-    // TODO(auth): limpar tokens do Secure Store (access + refresh).
-    microsoftAccountRepository.clearAccount();
+  async disconnect(accountId: string, removeData: boolean): Promise<void> {
+    microsoftAccountRepository.clearAccount(accountId);
     if (removeData) {
-      microsoft365ItemRepository.clearItems();
-      deltaTokenRepository.clearDeltaToken();
-      ms365Logger.info('microsoft_auth', 'desconectado e dados removidos (mock)');
+      microsoft365ItemRepository.clearItems({ accountId });
+      deltaTokenRepository.clearDeltaToken(accountId);
+      ms365Logger.info('microsoft_auth', 'desconectado e dados removidos (mock)', { accountId });
     } else {
-      ms365Logger.info('microsoft_auth', 'desconectado, histórico local mantido (mock)');
+      ms365Logger.info('microsoft_auth', 'desconectado, histórico mantido (mock)', { accountId });
     }
   }
 
-  async syncNow(): Promise<SyncResult> {
-    const account = microsoftAccountRepository.getAccount();
-    if (!account) {
+  async syncNow(accountId?: string): Promise<SyncResult> {
+    const accounts = microsoftAccountRepository.getAccounts();
+    const targets = accountId ? accounts.filter((a) => a.id === accountId) : accounts;
+    if (targets.length === 0) {
       const result: SyncResult = {
         status: 'error',
         emailCount: 0,
@@ -192,28 +199,31 @@ export class MockMicrosoft365Service implements Microsoft365Service {
     const now = Date.now();
     ms365Logger.info('microsoft_sync', 'sync iniciado (mock)');
 
-    // TODO(graph): substituir os mocks por chamadas reais ao Microsoft Graph:
-    //   - E-mails: GET FLAGGED_MAIL_QUERY (paginação @odata.nextLink)
-    //   - To Do:   GET TODO_LISTS_ENDPOINT + delta por lista (deltaTokenRepository)
-    const emailItems: Microsoft365Item[] = MOCK_GRAPH_MESSAGES.map((m) =>
-      mapGraphMessageToItem(m, now),
-    );
-    const taskItems: Microsoft365Item[] = MOCK_GRAPH_TASKS.map((t) =>
-      mapGraphTodoTaskToItem(t, now),
-    );
-
-    microsoft365ItemRepository.upsertItems([...emailItems, ...taskItems]);
-    microsoftAccountRepository.setLastSyncAt(account.id, now);
+    let emailTotal = 0;
+    let taskTotal = 0;
+    for (const account of targets) {
+      const emailItems: Microsoft365Item[] = MOCK_GRAPH_MESSAGES.map((m) =>
+        mapGraphMessageToItem(m, account.id, now),
+      );
+      const taskItems: Microsoft365Item[] = MOCK_GRAPH_TASKS.map((t) =>
+        mapGraphTodoTaskToItem(t, account.id, now),
+      );
+      microsoft365ItemRepository.upsertItems([...emailItems, ...taskItems]);
+      microsoftAccountRepository.setLastSyncAt(account.id, now);
+      emailTotal += emailItems.length;
+      taskTotal += taskItems.length;
+    }
 
     const result: SyncResult = {
       status: 'success',
-      emailCount: emailItems.length,
-      taskCount: taskItems.length,
+      emailCount: emailTotal,
+      taskCount: taskTotal,
       syncedAt: now,
     };
     ms365Logger.info('microsoft_sync', 'sync concluído (mock)', {
       emailCount: result.emailCount,
       taskCount: result.taskCount,
+      accounts: targets.length,
     });
     return result;
   }

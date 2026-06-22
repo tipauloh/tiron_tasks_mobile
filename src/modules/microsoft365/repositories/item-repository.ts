@@ -8,6 +8,7 @@ import { ms365Logger } from '../utils/logger';
 
 interface ItemRow {
   id: string;
+  account_id: string;
   external_id: string;
   source_type: string;
   title: string;
@@ -29,6 +30,7 @@ interface ItemRow {
 function mapRow(row: ItemRow): Microsoft365Item {
   return {
     id: row.id,
+    accountId: row.account_id,
     externalId: row.external_id,
     sourceType: row.source_type as Microsoft365SourceType,
     title: row.title,
@@ -49,7 +51,36 @@ function mapRow(row: ItemRow): Microsoft365Item {
 }
 
 export interface ListItemsOptions {
+  accountId?: string;
   sourceType?: Microsoft365SourceType;
+}
+
+export interface CountItemsOptions {
+  accountId?: string;
+  sourceType?: Microsoft365SourceType;
+}
+
+export interface ClearItemsOptions {
+  accountId?: string;
+  sourceType?: Microsoft365SourceType;
+}
+
+/** Monta o WHERE (account_id / source_type) compartilhado por list/count/clear. */
+function buildWhere(opts?: {
+  accountId?: string;
+  sourceType?: Microsoft365SourceType;
+}): { clause: string; params: (string | number)[] } {
+  const conds: string[] = [];
+  const params: (string | number)[] = [];
+  if (opts?.accountId) {
+    conds.push('account_id = ?');
+    params.push(opts.accountId);
+  }
+  if (opts?.sourceType) {
+    conds.push('source_type = ?');
+    params.push(opts.sourceType);
+  }
+  return { clause: conds.length ? ` WHERE ${conds.join(' AND ')}` : '', params };
 }
 
 export class Microsoft365ItemRepository {
@@ -57,35 +88,28 @@ export class Microsoft365ItemRepository {
     return getMs365Database();
   }
 
-  /** Lista itens do cache, opcionalmente filtrando por tipo. */
+  /** Lista itens do cache, opcionalmente filtrando por conta e/ou tipo. */
   listItems(options?: ListItemsOptions): Microsoft365Item[] {
-    let sql = `SELECT * FROM ${MS365_TABLES.items}`;
-    const params: (string | number)[] = [];
-    if (options?.sourceType) {
-      sql += ' WHERE source_type = ?';
-      params.push(options.sourceType);
-    }
-    sql += ' ORDER BY COALESCE(email_received_at, due_date, created_at) DESC, created_at DESC';
+    const { clause, params } = buildWhere(options);
+    const sql =
+      `SELECT * FROM ${MS365_TABLES.items}${clause}` +
+      ' ORDER BY COALESCE(email_received_at, due_date, created_at) DESC, created_at DESC';
     const rows = this.db.getAllSync<ItemRow>(sql, params);
     return rows.map(mapRow);
   }
 
-  /** Conta itens por tipo (para o card de status). */
-  countItems(sourceType?: Microsoft365SourceType): number {
-    let sql = `SELECT COUNT(*) AS c FROM ${MS365_TABLES.items}`;
-    const params: (string | number)[] = [];
-    if (sourceType) {
-      sql += ' WHERE source_type = ?';
-      params.push(sourceType);
-    }
+  /** Conta itens por conta e/ou tipo (para o card de status). */
+  countItems(options?: CountItemsOptions): number {
+    const { clause, params } = buildWhere(options);
+    const sql = `SELECT COUNT(*) AS c FROM ${MS365_TABLES.items}${clause}`;
     const row = this.db.getFirstSync<{ c: number }>(sql, params);
     return row?.c ?? 0;
   }
 
   /**
    * Upsert (em lote, transacional) de itens. A chave de unicidade é
-   * (source_type, external_id): re-sincronizar o mesmo item atualiza a linha
-   * sem duplicar, preservando created_at original.
+   * (account_id, source_type, external_id): re-sincronizar o mesmo item de uma
+   * conta atualiza a linha sem duplicar, preservando created_at original.
    */
   upsertItems(items: Microsoft365Item[]): void {
     if (items.length === 0) return;
@@ -93,11 +117,11 @@ export class Microsoft365ItemRepository {
       for (const item of items) {
         this.db.runSync(
           `INSERT INTO ${MS365_TABLES.items}
-             (id, external_id, source_type, title, summary, status, priority,
+             (id, account_id, external_id, source_type, title, summary, status, priority,
               due_date, web_link, last_sync, created_at, updated_at,
               email_from, email_received_at, email_is_read, email_flag_status, email_preview)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(source_type, external_id) DO UPDATE SET
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(account_id, source_type, external_id) DO UPDATE SET
              title = excluded.title,
              summary = excluded.summary,
              status = excluded.status,
@@ -113,6 +137,7 @@ export class Microsoft365ItemRepository {
              email_preview = excluded.email_preview`,
           [
             item.id,
+            item.accountId,
             item.externalId,
             item.sourceType,
             item.title,
@@ -136,14 +161,18 @@ export class Microsoft365ItemRepository {
     ms365Logger.info('microsoft_cache', 'itens upsert', { count: items.length });
   }
 
-  /** Remove todos os itens (ou apenas de um tipo). */
-  clearItems(sourceType?: Microsoft365SourceType): void {
-    if (sourceType) {
-      this.db.runSync(`DELETE FROM ${MS365_TABLES.items} WHERE source_type = ?`, [sourceType]);
+  /** Remove itens filtrando por conta e/ou tipo (sem filtro = apaga tudo). */
+  clearItems(options?: ClearItemsOptions): void {
+    const { clause, params } = buildWhere(options);
+    if (params.length) {
+      this.db.runSync(`DELETE FROM ${MS365_TABLES.items}${clause}`, params);
     } else {
       this.db.runSync(`DELETE FROM ${MS365_TABLES.items}`);
     }
-    ms365Logger.info('microsoft_cache', 'itens removidos', { sourceType: sourceType ?? 'all' });
+    ms365Logger.info('microsoft_cache', 'itens removidos', {
+      accountId: options?.accountId ?? 'all',
+      sourceType: options?.sourceType ?? 'all',
+    });
   }
 }
 

@@ -6,8 +6,10 @@ export {
   getValidAccessToken,
   getTokenExpiresAt,
   hasStoredSession,
+  persistTokensForAccount,
   getRedirectUri,
   exchangeCodeForTokens,
   MicrosoftAuthError,
   MicrosoftReauthRequiredError,
+  type StoredTokens,
 } from './auth';

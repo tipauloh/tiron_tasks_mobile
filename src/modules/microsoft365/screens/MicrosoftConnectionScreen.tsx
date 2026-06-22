@@ -26,6 +26,7 @@ export function MicrosoftConnectionScreen() {
   const user = useAuthStore((s) => s.user);
 
   const connectionQuery = useMicrosoftAccount();
+  const emailsQuery = useMicrosoft365Items('EMAIL');
 
   const connectMutation = useMicrosoftConnect();
   const disconnectMutation = useMicrosoftDisconnect();
@@ -33,6 +34,9 @@ export function MicrosoftConnectionScreen() {
 
   const state = connectionQuery.data;
   const isConnected = state?.isConnected ?? false;
+  const emails = emailsQuery.data ?? [];
+  const emailCountFor = (accountId: string) =>
+    emails.filter((e) => e.accountId === accountId).length;
 
   const syncStatus: SyncStatus = useMemo(() => {
     if (syncMutation.isPending) return 'syncing';
@@ -65,7 +69,7 @@ export function MicrosoftConnectionScreen() {
     });
   }
 
-  function handleDisconnect() {
+  function handleDisconnect(accountId: string) {
     Alert.alert(
       'Desconectar Conta',
       'O que deseja fazer com os dados já sincronizados neste dispositivo?',
@@ -74,11 +78,11 @@ export function MicrosoftConnectionScreen() {
         {
           text: 'Remover dados sincronizados',
           style: 'destructive',
-          onPress: () => disconnectMutation.mutate(true),
+          onPress: () => disconnectMutation.mutate({ accountId, removeData: true }),
         },
         {
           text: 'Manter histórico local',
-          onPress: () => disconnectMutation.mutate(false),
+          onPress: () => disconnectMutation.mutate({ accountId, removeData: false }),
         },
       ],
     );
@@ -126,13 +130,22 @@ export function MicrosoftConnectionScreen() {
           </View>
         ) : (
           <View style={styles.connected}>
-            {state?.account ? (
-              <MicrosoftAccountCard
-                account={state.account}
-                emailCount={state.emailCount}
-                status={syncStatus}
-              />
-            ) : null}
+            {(state?.accounts ?? []).map((account) => (
+              <View key={account.id} style={styles.section}>
+                <MicrosoftAccountCard
+                  account={account}
+                  emailCount={emailCountFor(account.id)}
+                  status={syncStatus}
+                />
+                <Button
+                  title="Desconectar Conta"
+                  onPress={() => handleDisconnect(account.id)}
+                  variant="danger"
+                  loading={disconnectMutation.isPending}
+                  size="md"
+                />
+              </View>
+            ))}
 
             <View style={styles.actions}>
               <Button
@@ -141,13 +154,12 @@ export function MicrosoftConnectionScreen() {
                 loading={syncMutation.isPending}
                 size="md"
               />
-              <Button
-                title="Desconectar Conta"
-                onPress={handleDisconnect}
-                variant="danger"
-                loading={disconnectMutation.isPending}
-                size="md"
-              />
+              <View style={styles.connectBtn}>
+                <MicrosoftConnectButton
+                  onPress={handleConnect}
+                  loading={connectMutation.isPending}
+                />
+              </View>
             </View>
 
             <Text variant="body" secondary style={styles.note}>

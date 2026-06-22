@@ -1,7 +1,7 @@
-// Microsoft 365 — repositório da conta (metadados não sensíveis em SQLite).
+// Microsoft 365 — repositório das contas (metadados não sensíveis em SQLite).
 //
-// Tokens NÃO ficam aqui — só Secure Store. Esta tabela tem 1 linha por usuário
-// do app (na prática 1 conta conectada).
+// Tokens NÃO ficam aqui — só Secure Store. MULTI-CONTA: uma linha por conta
+// Microsoft conectada (id = profile.id da Microsoft).
 
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { getMs365Database } from '../storage/db';
@@ -40,10 +40,19 @@ export class MicrosoftAccountRepository {
     return getMs365Database();
   }
 
-  /** Retorna a conta conectada (a primeira / única), ou null. */
-  getAccount(): MicrosoftAccount | null {
+  /** Retorna todas as contas conectadas (mais antigas primeiro). */
+  getAccounts(): MicrosoftAccount[] {
+    const rows = this.db.getAllSync<AccountRow>(
+      `SELECT * FROM ${MS365_TABLES.accountMeta} ORDER BY created_at ASC`,
+    );
+    return rows.map(mapRow);
+  }
+
+  /** Retorna uma conta pelo id, ou null. */
+  getAccountById(id: string): MicrosoftAccount | null {
     const row = this.db.getFirstSync<AccountRow>(
-      `SELECT * FROM ${MS365_TABLES.accountMeta} ORDER BY created_at ASC LIMIT 1`,
+      `SELECT * FROM ${MS365_TABLES.accountMeta} WHERE id = ?`,
+      [id],
     );
     return row ? mapRow(row) : null;
   }
@@ -86,10 +95,10 @@ export class MicrosoftAccountRepository {
     );
   }
 
-  /** Remove a conta (e nada além — itens/delta tratados separadamente). */
-  clearAccount(): void {
-    this.db.runSync(`DELETE FROM ${MS365_TABLES.accountMeta}`);
-    ms365Logger.info('microsoft_cache', 'account meta removido');
+  /** Remove UMA conta (itens/delta tratados separadamente). */
+  clearAccount(accountId: string): void {
+    this.db.runSync(`DELETE FROM ${MS365_TABLES.accountMeta} WHERE id = ?`, [accountId]);
+    ms365Logger.info('microsoft_cache', 'account meta removido', { accountId });
   }
 }
 

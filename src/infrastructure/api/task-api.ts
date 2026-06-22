@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import type {
   ApiDashboard,
   ApiEmailSyncItem,
+  ApiEmailSyncRequest,
   ApiEmailSyncResult,
   ApiReminder,
   ApiTaskCreateRequest,
@@ -83,8 +84,16 @@ export const taskApi = {
   },
 
   // Espelha e-mails sinalizados do Microsoft 365 como tarefas (idempotente).
-  emailSync(items: ApiEmailSyncItem[]): Promise<SingleResponse<ApiEmailSyncResult>> {
-    return apiClient.post(`${BASE}/email-sync`, { items });
+  // MULTI-CONTA: opts.accountId escopa a reconciliação a uma conta; opts.reconcile
+  // pede ao backend para concluir tarefas de e-mails não mais sinalizados.
+  emailSync(
+    items: ApiEmailSyncItem[],
+    opts?: { accountId?: string; reconcile?: boolean },
+  ): Promise<SingleResponse<ApiEmailSyncResult>> {
+    const body: ApiEmailSyncRequest = { items };
+    if (opts?.accountId != null) body.account_id = opts.accountId;
+    if (opts?.reconcile != null) body.reconcile = opts.reconcile;
+    return apiClient.post(`${BASE}/email-sync`, body);
   },
 
   dashboard(): Promise<SingleResponse<ApiDashboard>> {

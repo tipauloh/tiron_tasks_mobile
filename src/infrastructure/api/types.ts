@@ -92,6 +92,9 @@ export interface ApiTaskSummary {
   // concluir/reabrir a tarefa espelha o flag do e-mail (ver módulo microsoft365).
   external_email_id: string | null;
   external_provider: string | null; // 'microsoft'
+  // Conta Microsoft de origem (= profile.id). Define em qual conta espelhar o
+  // flag do e-mail ao concluir/reabrir a tarefa (MULTI-CONTA).
+  external_account_id: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -104,6 +107,15 @@ export interface ApiEmailSyncItem {
   email_from?: string | null;
   received_at?: string | null;
   web_link?: string | null;
+}
+
+// Corpo de POST /tasks/email-sync. account_id (MULTI-CONTA) escopa a
+// reconciliação à conta Microsoft; reconcile=true conclui tarefas de e-mails
+// que deixaram de estar sinalizados.
+export interface ApiEmailSyncRequest {
+  items: ApiEmailSyncItem[];
+  account_id?: string;
+  reconcile?: boolean;
 }
 
 export interface ApiEmailSyncResult {

@@ -17,13 +17,16 @@ jest.mock('../../../src/modules/microsoft365/auth', () => {
   };
 });
 
-// delta-token-repository em memória (evita SQLite).
+// delta-token-repository em memória (evita SQLite). MULTI-CONTA: chave por (accountId, scope).
 const deltaStore: Record<string, string> = {};
+const deltaKey = (accountId: string, scope: string) => `${accountId}::${scope}`;
 jest.mock('../../../src/modules/microsoft365/repositories', () => ({
   deltaTokenRepository: {
-    getDeltaToken: jest.fn((scope: string) => deltaStore[scope] ?? null),
-    setDeltaToken: jest.fn((scope: string, link: string) => {
-      deltaStore[scope] = link;
+    getDeltaToken: jest.fn(
+      (accountId: string, scope: string) => deltaStore[`${accountId}::${scope}`] ?? null,
+    ),
+    setDeltaToken: jest.fn((accountId: string, scope: string, link: string) => {
+      deltaStore[`${accountId}::${scope}`] = link;
     }),
     clearDeltaToken: jest.fn(),
   },
@@ -57,7 +60,7 @@ beforeEach(() => {
 describe('graphGet', () => {
   it('injeta Authorization Bearer e retorna o JSON', async () => {
     (global.fetch as any).mockResolvedValueOnce(res(200, { ok: 1 }));
-    const data = await graphGet<{ ok: number }>('/me');
+    const data = await graphGet<{ ok: number }>('/me', 'acc-1');
     expect(data.ok).toBe(1);
     const [url, init] = (global.fetch as any).mock.calls[0];
     expect(url).toBe('https://graph.microsoft.com/v1.0/me');
@@ -68,14 +71,14 @@ describe('graphGet', () => {
     (global.fetch as any)
       .mockResolvedValueOnce(res(401, {}))
       .mockResolvedValueOnce(res(401, {}));
-    await expect(graphGet('/me')).rejects.toBeInstanceOf(MicrosoftReauthRequiredError);
+    await expect(graphGet('/me', 'acc-1')).rejects.toBeInstanceOf(MicrosoftReauthRequiredError);
   });
 
   it('respeita 429 Retry-After e depois sucede', async () => {
     (global.fetch as any)
       .mockResolvedValueOnce(res(429, {}, { 'Retry-After': '0' }))
       .mockResolvedValueOnce(res(200, { ok: 2 }));
-    const data = await graphGet<{ ok: number }>('/me');
+    const data = await graphGet<{ ok: number }>('/me', 'acc-1');
     expect(data.ok).toBe(2);
     expect((global.fetch as any).mock.calls.length).toBe(2);
   });
@@ -92,7 +95,7 @@ describe('graphGetAllPages', () => {
       )
       .mockResolvedValueOnce(res(200, { value: [{ id: 'c' }] }));
 
-    const items = await graphGetAllPages<{ id: string }>('/me/messages');
+    const items = await graphGetAllPages<{ id: string }>('/me/messages', 'acc-1');
     expect(items.map((i) => i.id)).toEqual(['a', 'b', 'c']);
   });
 });
@@ -113,40 +116,44 @@ describe('graphGetDelta', () => {
         }),
       );
 
-    const { items, deltaLink } = await graphGetDelta<{ id: string }>('/start');
+    const { items, deltaLink } = await graphGetDelta<{ id: string }>('/start', 'acc-1');
     expect(items.map((i) => i.id)).toEqual(['t1', 't2']);
     expect(deltaLink).toBe('https://graph.microsoft.com/v1.0/the-delta-link');
   });
 });
 
 describe('fetchFlaggedEmails', () => {
-  it('retorna as mensagens sinalizadas', async () => {
+  it('retorna as mensagens sinalizadas da conta', async () => {
     (global.fetch as any).mockResolvedValueOnce(
       res(200, { value: [{ id: 'm1', subject: 's' }] }),
     );
-    const msgs = await fetchFlaggedEmails();
+    const msgs = await fetchFlaggedEmails('acc-1');
     expect(msgs).toHaveLength(1);
     expect(msgs[0].id).toBe('m1');
   });
 });
 
 describe('me', () => {
-  it('mapeia id/displayName/mail', async () => {
+  it('mapeia id/displayName/mail usando o token direto (raw fetch)', async () => {
     (global.fetch as any).mockResolvedValueOnce(
       res(200, { id: 'u1', displayName: 'Fulano', mail: 'f@x.com' }),
     );
-    const profile = await me();
+    const profile = await me('direct-token');
     expect(profile).toEqual({
       id: 'u1',
       displayName: 'Fulano',
       mail: 'f@x.com',
       userPrincipalName: null,
     });
+    // Usa o token passado diretamente, sem getValidAccessToken.
+    const [, init] = (global.fetch as any).mock.calls[0];
+    expect(init.headers.Authorization).toBe('Bearer direct-token');
+    expect(getValidAccessToken).not.toHaveBeenCalled();
   });
 });
 
 describe('fetchTodoListsAndTasks (delta)', () => {
-  it('faz carga inicial e persiste o deltaLink por lista', async () => {
+  it('faz carga inicial e persiste o deltaLink por (conta, lista)', async () => {
     // 1) lista de listas
     (global.fetch as any)
       .mockResolvedValueOnce(res(200, { value: [{ id: 'list-1', displayName: 'L1' }] }))
@@ -158,13 +165,15 @@ describe('fetchTodoListsAndTasks (delta)', () => {
         }),
       );
 
-    const tasks = await fetchTodoListsAndTasks();
+    const tasks = await fetchTodoListsAndTasks('acc-1');
     expect(tasks.map((t) => t.id)).toEqual(['task-1']);
-    expect(deltaStore['todo:list-1']).toBe('https://graph.microsoft.com/v1.0/todo-delta-1');
+    expect(deltaStore[deltaKey('acc-1', 'todo:list-1')]).toBe(
+      'https://graph.microsoft.com/v1.0/todo-delta-1',
+    );
   });
 
   it('reusa o deltaLink salvo na próxima sync e filtra @removed', async () => {
-    deltaStore['todo:list-1'] = 'https://graph.microsoft.com/v1.0/saved-delta';
+    deltaStore[deltaKey('acc-1', 'todo:list-1')] = 'https://graph.microsoft.com/v1.0/saved-delta';
 
     (global.fetch as any)
       .mockResolvedValueOnce(res(200, { value: [{ id: 'list-1', displayName: 'L1' }] }))
@@ -178,21 +187,23 @@ describe('fetchTodoListsAndTasks (delta)', () => {
         }),
       );
 
-    const tasks = await fetchTodoListsAndTasks();
+    const tasks = await fetchTodoListsAndTasks('acc-1');
     // task-old (removida) foi filtrada.
     expect(tasks.map((t) => t.id)).toEqual(['task-2']);
 
     // Confirma que a 2ª chamada usou o deltaLink salvo.
     const taskCallUrl = (global.fetch as any).mock.calls[1][0];
     expect(taskCallUrl).toBe('https://graph.microsoft.com/v1.0/saved-delta');
-    expect(deltaStore['todo:list-1']).toBe('https://graph.microsoft.com/v1.0/saved-delta-2');
+    expect(deltaStore[deltaKey('acc-1', 'todo:list-1')]).toBe(
+      'https://graph.microsoft.com/v1.0/saved-delta-2',
+    );
   });
 });
 
 describe('auth wiring', () => {
-  it('getValidAccessToken é chamado por requisição', async () => {
+  it('getValidAccessToken é chamado por requisição com o accountId', async () => {
     (global.fetch as any).mockResolvedValueOnce(res(200, { ok: 1 }));
-    await graphGet('/me');
-    expect(getValidAccessToken).toHaveBeenCalled();
+    await graphGet('/me', 'acc-1');
+    expect(getValidAccessToken).toHaveBeenCalledWith('acc-1');
   });
 });

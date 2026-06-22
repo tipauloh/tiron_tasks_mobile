@@ -61,48 +61,72 @@ export function getRedirectUri(): string {
   });
 }
 
-// ── Persistência de tokens (Secure Store) ──────────────────────────────────
+// ── Persistência de tokens (Secure Store) — POR CONTA (accountId) ───────────
+//
+// MULTI-CONTA: as chaves do Secure Store recebem o accountId como sufixo, de
+// modo que cada conta Microsoft conectada tem seu próprio par access/refresh.
 
-interface StoredTokens {
+export interface StoredTokens {
   accessToken: string;
   refreshToken: string | null;
   expiresAt: number; // epoch ms
 }
 
-async function persistTokens(tokens: StoredTokens): Promise<void> {
-  await SecureStore.setItemAsync(SECURE_KEYS.accessToken, tokens.accessToken);
-  if (tokens.refreshToken) {
-    await SecureStore.setItemAsync(SECURE_KEYS.refreshToken, tokens.refreshToken);
-  }
-  // expiresAt não é sensível, mas mantemos junto dos tokens por coesão.
-  await SecureStore.setItemAsync(
-    `${SECURE_KEYS.accessToken}_exp`,
-    String(tokens.expiresAt),
-  );
+/** Chave do access token de uma conta. */
+function accessKey(accountId: string): string {
+  return `${SECURE_KEYS.accessToken}:${accountId}`;
+}
+/** Chave do refresh token de uma conta. */
+function refreshKey(accountId: string): string {
+  return `${SECURE_KEYS.refreshToken}:${accountId}`;
+}
+/** Chave da expiração (não sensível) do access token de uma conta. */
+function expKey(accountId: string): string {
+  return `${SECURE_KEYS.accessToken}:${accountId}_exp`;
 }
 
-async function readStoredTokens(): Promise<StoredTokens | null> {
-  const accessToken = await SecureStore.getItemAsync(SECURE_KEYS.accessToken);
+async function persistTokens(accountId: string, tokens: StoredTokens): Promise<void> {
+  await SecureStore.setItemAsync(accessKey(accountId), tokens.accessToken);
+  if (tokens.refreshToken) {
+    await SecureStore.setItemAsync(refreshKey(accountId), tokens.refreshToken);
+  }
+  // expiresAt não é sensível, mas mantemos junto dos tokens por coesão.
+  await SecureStore.setItemAsync(expKey(accountId), String(tokens.expiresAt));
+}
+
+/**
+ * Persiste os tokens de uma conta. Exportado porque o `connect()` só conhece o
+ * accountId DEPOIS do signIn (via GET /me) — ver service.connect().
+ */
+export async function persistTokensForAccount(
+  accountId: string,
+  tokens: StoredTokens,
+): Promise<void> {
+  await persistTokens(accountId, tokens);
+}
+
+async function readStoredTokens(accountId: string): Promise<StoredTokens | null> {
+  const accessToken = await SecureStore.getItemAsync(accessKey(accountId));
   if (!accessToken) return null;
-  const refreshToken = await SecureStore.getItemAsync(SECURE_KEYS.refreshToken);
-  const expRaw = await SecureStore.getItemAsync(`${SECURE_KEYS.accessToken}_exp`);
+  const refreshToken = await SecureStore.getItemAsync(refreshKey(accountId));
+  const expRaw = await SecureStore.getItemAsync(expKey(accountId));
   const expiresAt = expRaw ? Number(expRaw) : 0;
   return { accessToken, refreshToken, expiresAt };
 }
 
-/** Apaga TODOS os tokens do Secure Store (logout / falha irreversível). */
-export async function signOut(): Promise<void> {
+/** Apaga os tokens de UMA conta do Secure Store (logout / falha irreversível). */
+export async function signOut(accountId: string): Promise<void> {
   await Promise.all([
-    SecureStore.deleteItemAsync(SECURE_KEYS.accessToken),
-    SecureStore.deleteItemAsync(SECURE_KEYS.refreshToken),
-    SecureStore.deleteItemAsync(`${SECURE_KEYS.accessToken}_exp`),
+    SecureStore.deleteItemAsync(accessKey(accountId)),
+    SecureStore.deleteItemAsync(refreshKey(accountId)),
+    SecureStore.deleteItemAsync(expKey(accountId)),
   ]);
-  ms365Logger.info('microsoft_auth', 'tokens removidos do secure store');
+  ms365Logger.info('microsoft_auth', 'tokens removidos do secure store', { accountId });
 }
 
-/** True se há um access token armazenado (mesmo que expirado — pode renovar). */
-export async function hasStoredSession(): Promise<boolean> {
-  const tokens = await readStoredTokens();
+/** True se há um access token armazenado para a conta (mesmo expirado — pode renovar). */
+export async function hasStoredSession(accountId: string): Promise<boolean> {
+  const tokens = await readStoredTokens(accountId);
   return tokens != null;
 }
 
@@ -149,6 +173,7 @@ async function postToken(body: Record<string, string>): Promise<TokenResponse> {
 
 /**
  * Troca authorization code + code_verifier por tokens (sem client_secret).
+ * NÃO persiste — o accountId só é conhecido após o GET /me. Retorna os tokens.
  * Exportado para teste unitário (mock de fetch).
  */
 export async function exchangeCodeForTokens(
@@ -165,16 +190,18 @@ export async function exchangeCodeForTokens(
     scope: MS_SCOPES.join(' '),
   });
   const tokens = tokenResponseToStored(data);
-  await persistTokens(tokens);
   ms365Logger.info('microsoft_auth', 'code trocado por tokens com sucesso');
   return tokens;
 }
 
 /**
- * Renova o access token usando o refresh token. Em falha, limpa tudo e lança
- * MicrosoftReauthRequiredError (UI deve pedir reconexão).
+ * Renova o access token de uma conta usando o refresh token. Em falha, limpa os
+ * tokens DESSA conta e lança MicrosoftReauthRequiredError (UI pede reconexão).
  */
-async function refreshAccessToken(refreshToken: string): Promise<StoredTokens> {
+async function refreshAccessToken(
+  accountId: string,
+  refreshToken: string,
+): Promise<StoredTokens> {
   let data: TokenResponse;
   try {
     data = await postToken({
@@ -184,22 +211,22 @@ async function refreshAccessToken(refreshToken: string): Promise<StoredTokens> {
       scope: MS_SCOPES.join(' '),
     });
   } catch {
-    await signOut();
+    await signOut(accountId);
     throw new MicrosoftReauthRequiredError();
   }
   const tokens = tokenResponseToStored(data, refreshToken);
-  await persistTokens(tokens);
-  ms365Logger.info('microsoft_auth', 'access token renovado via refresh');
+  await persistTokens(accountId, tokens);
+  ms365Logger.info('microsoft_auth', 'access token renovado via refresh', { accountId });
   return tokens;
 }
 
 /**
- * Retorna um access token válido. Se estiver expirado (ou perto de expirar),
- * renova automaticamente via refresh_token. Se não houver sessão ou o refresh
- * falhar, lança MicrosoftReauthRequiredError.
+ * Retorna um access token válido PARA A CONTA. Se estiver expirado (ou perto de
+ * expirar), renova automaticamente via refresh_token. Se não houver sessão ou o
+ * refresh falhar, lança MicrosoftReauthRequiredError.
  */
-export async function getValidAccessToken(): Promise<string> {
-  const tokens = await readStoredTokens();
+export async function getValidAccessToken(accountId: string): Promise<string> {
+  const tokens = await readStoredTokens(accountId);
   if (!tokens) {
     throw new MicrosoftReauthRequiredError('Nenhuma sessão Microsoft ativa.');
   }
@@ -208,28 +235,29 @@ export async function getValidAccessToken(): Promise<string> {
     return tokens.accessToken;
   }
   if (!tokens.refreshToken) {
-    await signOut();
+    await signOut(accountId);
     throw new MicrosoftReauthRequiredError();
   }
-  const refreshed = await refreshAccessToken(tokens.refreshToken);
+  const refreshed = await refreshAccessToken(accountId, tokens.refreshToken);
   return refreshed.accessToken;
 }
 
-/** Timestamp (epoch ms) de expiração do access token atual, ou null. */
-export async function getTokenExpiresAt(): Promise<number | null> {
-  const tokens = await readStoredTokens();
+/** Timestamp (epoch ms) de expiração do access token da conta, ou null. */
+export async function getTokenExpiresAt(accountId: string): Promise<number | null> {
+  const tokens = await readStoredTokens(accountId);
   return tokens?.expiresAt ?? null;
 }
 
 // ── Fluxo interativo de login (PKCE) ───────────────────────────────────────
 
 /**
- * Roda o fluxo OAuth interativo (abre navegador do sistema), troca o code por
- * tokens e os persiste. Retorna o access token + a expiração.
+ * Roda o fluxo OAuth interativo (abre navegador do sistema) e troca o code por
+ * tokens. NÃO persiste — o accountId só é conhecido após o GET /me. Retorna os
+ * tokens (access + refresh + expiração) para o service persistir por conta.
  *
  * Lança MicrosoftAuthError se o usuário cancelar ou houver erro.
  */
-export async function signIn(): Promise<{ accessToken: string; expiresAt: number }> {
+export async function signIn(): Promise<StoredTokens> {
   if (!MICROSOFT_CLIENT_ID) {
     throw new MicrosoftAuthError('microsoftClientId ausente em app.json extra.');
   }
@@ -269,5 +297,5 @@ export async function signIn(): Promise<{ accessToken: string; expiresAt: number
   }
 
   const tokens = await exchangeCodeForTokens(result.params.code, codeVerifier, redirectUri);
-  return { accessToken: tokens.accessToken, expiresAt: tokens.expiresAt };
+  return tokens;
 }

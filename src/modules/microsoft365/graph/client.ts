@@ -49,12 +49,12 @@ function parseRetryAfter(res: Response, attempt: number): number {
  * GET autenticado a um endpoint do Graph. Retorna o JSON parseado.
  * `path` pode ser relativo ao GRAPH_BASE ou um nextLink/deltaLink absoluto.
  */
-export async function graphGet<T = unknown>(path: string): Promise<T> {
+export async function graphGet<T = unknown>(path: string, accountId: string): Promise<T> {
   const url = toAbsoluteUrl(path);
   let triedRefresh = false;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const accessToken = await getValidAccessToken();
+    const accessToken = await getValidAccessToken(accountId);
     const res = await fetch(url, {
       method: 'GET',
       headers: {
@@ -121,12 +121,16 @@ export async function graphGet<T = unknown>(path: string): Promise<T> {
  * GET. ÚNICO ponto de ESCRITA do módulo — usado só para atualizar o flag de um
  * e-mail (flag/flagStatus). `body` é serializado como JSON.
  */
-export async function graphPatch<T = unknown>(path: string, body: unknown): Promise<T> {
+export async function graphPatch<T = unknown>(
+  path: string,
+  body: unknown,
+  accountId: string,
+): Promise<T> {
   const url = toAbsoluteUrl(path);
   let triedRefresh = false;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const accessToken = await getValidAccessToken();
+    const accessToken = await getValidAccessToken(accountId);
     const res = await fetch(url, {
       method: 'PATCH',
       headers: {
@@ -175,12 +179,12 @@ export async function graphPatch<T = unknown>(path: string, body: unknown): Prom
  * GET com paginação automática: segue @odata.nextLink e concatena `value`.
  * Use para coleções (mensagens, tarefas) sem delta.
  */
-export async function graphGetAllPages<T>(path: string): Promise<T[]> {
+export async function graphGetAllPages<T>(path: string, accountId: string): Promise<T[]> {
   const items: T[] = [];
   let next: string | undefined = path;
   let pages = 0;
   while (next) {
-    const page: GraphCollection<T> = await graphGet<GraphCollection<T>>(next);
+    const page: GraphCollection<T> = await graphGet<GraphCollection<T>>(next, accountId);
     if (page.value?.length) items.push(...page.value);
     next = page['@odata.nextLink'];
     pages += 1;
@@ -195,12 +199,13 @@ export async function graphGetAllPages<T>(path: string): Promise<T[]> {
  */
 export async function graphGetDelta<T>(
   path: string,
+  accountId: string,
 ): Promise<{ items: T[]; deltaLink: string | null }> {
   const items: T[] = [];
   let next: string | undefined = path;
   let deltaLink: string | null = null;
   while (next) {
-    const page: GraphCollection<T> = await graphGet<GraphCollection<T>>(next);
+    const page: GraphCollection<T> = await graphGet<GraphCollection<T>>(next, accountId);
     if (page.value?.length) items.push(...page.value);
     if (page['@odata.deltaLink']) {
       deltaLink = page['@odata.deltaLink'];

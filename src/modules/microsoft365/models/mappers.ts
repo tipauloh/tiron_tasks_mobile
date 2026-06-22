@@ -27,6 +27,7 @@ function mapImportance(importance?: string): string | null {
  */
 export function mapGraphMessageToItem(
   message: GraphMessage,
+  accountId: string,
   now: number = Date.now(),
 ): Microsoft365Item {
   const subject = message.subject ?? '(sem assunto)';
@@ -36,6 +37,7 @@ export function mapGraphMessageToItem(
 
   return {
     id: generateId(),
+    accountId,
     externalId: message.id,
     sourceType: 'EMAIL',
     title: subject,
@@ -61,10 +63,12 @@ export function mapGraphMessageToItem(
  */
 export function mapGraphTodoTaskToItem(
   task: GraphTodoTask,
+  accountId: string,
   now: number = Date.now(),
 ): Microsoft365Item {
   return {
     id: generateId(),
+    accountId,
     externalId: task.id,
     sourceType: 'TODO_TASK',
     title: task.title ?? '(sem título)',

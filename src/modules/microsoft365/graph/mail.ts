@@ -16,21 +16,21 @@ function messagePath(messageId: string): string {
 }
 
 /** Marca o e-mail como concluído (flag/flagStatus = 'complete'). */
-export async function setEmailFlagComplete(messageId: string): Promise<void> {
-  await graphPatch(messagePath(messageId), { flag: { flagStatus: 'complete' } });
+export async function setEmailFlagComplete(messageId: string, accountId: string): Promise<void> {
+  await graphPatch(messagePath(messageId), { flag: { flagStatus: 'complete' } }, accountId);
   ms365Logger.info('microsoft_graph', 'e-mail marcado como concluído');
 }
 
 /** Volta o e-mail a sinalizado (flag/flagStatus = 'flagged') — ao reabrir a tarefa. */
-export async function setEmailFlagFlagged(messageId: string): Promise<void> {
-  await graphPatch(messagePath(messageId), { flag: { flagStatus: 'flagged' } });
+export async function setEmailFlagFlagged(messageId: string, accountId: string): Promise<void> {
+  await graphPatch(messagePath(messageId), { flag: { flagStatus: 'flagged' } }, accountId);
   ms365Logger.info('microsoft_graph', 'e-mail re-sinalizado');
 }
 
-/** Busca todos os e-mails sinalizados (paginados) e ordena por data (desc) no
- * cliente — o Graph rejeita $orderby junto com o filtro de flag (InefficientFilter). */
-export async function fetchFlaggedEmails(): Promise<GraphMessage[]> {
-  const messages = await graphGetAllPages<GraphMessage>(FLAGGED_MAIL_QUERY);
+/** Busca todos os e-mails sinalizados (paginados) de uma conta e ordena por data
+ * (desc) no cliente — o Graph rejeita $orderby junto com o filtro de flag. */
+export async function fetchFlaggedEmails(accountId: string): Promise<GraphMessage[]> {
+  const messages = await graphGetAllPages<GraphMessage>(FLAGGED_MAIL_QUERY, accountId);
   messages.sort((a, b) =>
     (b.receivedDateTime ?? '').localeCompare(a.receivedDateTime ?? ''),
   );

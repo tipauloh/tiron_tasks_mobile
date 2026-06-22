@@ -18,10 +18,10 @@ import {
   getValidAccessToken,
   getTokenExpiresAt,
   hasStoredSession,
+  persistTokensForAccount,
   MicrosoftReauthRequiredError,
 } from '../auth';
 import type { MicrosoftAccount, Microsoft365Item, SyncResult } from '../types';
-import { generateId } from '../../../utils/id';
 import { taskApi } from '@/infrastructure/api/task-api';
 import { ms365Logger } from '../utils/logger';
 import type { ConnectionState, Microsoft365Service } from './microsoft365.service';
@@ -31,38 +31,47 @@ export class RealMicrosoft365Service implements Microsoft365Service {
   private syncing = false;
 
   getConnectionState(): ConnectionState {
-    const account = microsoftAccountRepository.getAccount();
+    const accounts = microsoftAccountRepository.getAccounts();
+    const lastSyncAt = accounts.reduce<number | null>(
+      (max, a) => (a.lastSyncAt != null && (max == null || a.lastSyncAt > max) ? a.lastSyncAt : max),
+      null,
+    );
     return {
-      isConnected: account != null,
-      account,
-      emailCount: microsoft365ItemRepository.countItems('EMAIL'),
-      taskCount: microsoft365ItemRepository.countItems('TODO_TASK'),
-      lastSyncAt: account?.lastSyncAt ?? null,
+      isConnected: accounts.length > 0,
+      accounts,
+      emailCount: microsoft365ItemRepository.countItems({ sourceType: 'EMAIL' }),
+      taskCount: 0,
+      lastSyncAt,
     };
   }
 
   /**
-   * Conecta uma conta Microsoft: OAuth PKCE → tokens no Secure Store → GET /me
-   * → persiste metadados → dispara sync inicial.
+   * Conecta (ou re-conecta) uma conta Microsoft: OAuth PKCE → GET /me (que define
+   * o accountId = profile.id) → persiste tokens POR CONTA no Secure Store →
+   * salva/atualiza a linha da conta (sem remover as demais) → sync inicial.
    */
   async connect(userId: string): Promise<MicrosoftAccount> {
-    // 1) Fluxo OAuth interativo (abre navegador; troca code por tokens).
-    const { expiresAt } = await signIn();
+    // 1) Fluxo OAuth interativo (abre navegador; troca code por tokens) — SEM persistir.
+    const tok = await signIn();
 
-    // 2) Identidade do usuário via Graph.
-    const profile = await me();
+    // 2) Identidade do usuário via Graph (usa o access token direto). Define o accountId.
+    const profile = await me(tok.accessToken);
+    const accountId = profile.id;
     const email = profile.mail ?? profile.userPrincipalName ?? '';
 
-    // 3) Persiste metadados da conta (sem tokens).
+    // 3) Agora que sabemos o accountId, persiste os tokens dessa conta.
+    await persistTokensForAccount(accountId, tok);
+
+    // 4) Upsert da conta (não remove outras contas).
     const now = Date.now();
-    const existing = microsoftAccountRepository.getAccount();
+    const existing = microsoftAccountRepository.getAccountById(accountId);
     const account: MicrosoftAccount = {
-      id: existing?.id ?? generateId(),
+      id: accountId,
       userId,
       microsoftUserId: profile.id,
       email,
       displayName: profile.displayName ?? email,
-      tokenExpiresAt: expiresAt,
+      tokenExpiresAt: tok.expiresAt,
       lastSyncAt: existing?.lastSyncAt ?? null,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -70,38 +79,44 @@ export class RealMicrosoft365Service implements Microsoft365Service {
     microsoftAccountRepository.saveAccount(account);
     ms365Logger.info('microsoft_auth', 'conta conectada', { accountId: account.id });
 
-    // 4) Sync inicial — não falha o connect se o sync falhar (UI pode tentar de novo).
+    // 5) Sync inicial só dessa conta — não falha o connect se o sync falhar.
     try {
-      await this.syncNow();
+      await this.syncNow(accountId);
     } catch (err) {
       ms365Logger.warn('microsoft_sync', 'sync inicial falhou (conta segue conectada)', {
         error: err instanceof Error ? err.name : 'unknown',
       });
     }
 
-    return microsoftAccountRepository.getAccount() ?? account;
+    return microsoftAccountRepository.getAccountById(accountId) ?? account;
   }
 
-  /** Desconecta: limpa tokens e, opcionalmente, todos os dados locais. */
-  async disconnect(removeData: boolean): Promise<void> {
-    await signOut();
-    microsoftAccountRepository.clearAccount();
+  /** Desconecta UMA conta: limpa tokens dela e, opcionalmente, seus dados locais. */
+  async disconnect(accountId: string, removeData: boolean): Promise<void> {
+    await signOut(accountId);
+    microsoftAccountRepository.clearAccount(accountId);
     if (removeData) {
-      microsoft365ItemRepository.clearItems();
-      deltaTokenRepository.clearDeltaToken();
-      ms365Logger.info('microsoft_auth', 'desconectado e dados removidos');
+      microsoft365ItemRepository.clearItems({ accountId });
+      deltaTokenRepository.clearDeltaToken(accountId);
+      ms365Logger.info('microsoft_auth', 'desconectado e dados removidos', { accountId });
     } else {
-      ms365Logger.info('microsoft_auth', 'desconectado, histórico local mantido');
+      ms365Logger.info('microsoft_auth', 'desconectado, histórico local mantido', { accountId });
     }
   }
 
   /**
-   * Sincroniza: garante token válido → busca flagged emails + To Do (delta) →
-   * mapeia → upsert → atualiza lastSyncAt. Erros não vazam conteúdo.
+   * Sincroniza. Se `accountId` for informado, sincroniza apenas essa conta;
+   * senão, faz loop em TODAS as contas conectadas. Por conta: garante token
+   * válido → busca flagged emails → mapeia (com accountId) → upsert → emailSync
+   * (com account_id + reconcile) → atualiza lastSyncAt. Erros não vazam conteúdo.
    */
-  async syncNow(): Promise<SyncResult> {
-    const account = microsoftAccountRepository.getAccount();
-    if (!account) {
+  async syncNow(accountId?: string): Promise<SyncResult> {
+    const allAccounts = microsoftAccountRepository.getAccounts();
+    const targets = accountId
+      ? allAccounts.filter((a) => a.id === accountId)
+      : allAccounts;
+
+    if (targets.length === 0) {
       ms365Logger.warn('microsoft_sync', 'sync sem conta conectada');
       return {
         status: 'error',
@@ -123,62 +138,75 @@ export class RealMicrosoft365Service implements Microsoft365Service {
     }
 
     this.syncing = true;
-    const now = Date.now();
-    ms365Logger.info('microsoft_sync', 'sync iniciado');
+    ms365Logger.info('microsoft_sync', 'sync iniciado', { accounts: targets.length });
+
+    let emailTotal = 0;
+    let lastError: unknown = null;
+    const syncedAt = Date.now();
 
     try {
-      // Garante que há token válido antes de bater no Graph (refresh se preciso).
-      await getValidAccessToken();
+      for (const account of targets) {
+        const now = Date.now();
+        try {
+          // Garante token válido antes de bater no Graph (refresh se preciso).
+          await getValidAccessToken(account.id);
 
-      // Escopo desta versão: apenas e-mails sinalizados (Tarefas/To Do removido).
-      const messages = await fetchFlaggedEmails();
-      const emailItems: Microsoft365Item[] = messages.map((m) => mapGraphMessageToItem(m, now));
-      microsoft365ItemRepository.upsertItems(emailItems);
+          // Escopo desta versão: apenas e-mails sinalizados.
+          const messages = await fetchFlaggedEmails(account.id);
+          const emailItems: Microsoft365Item[] = messages.map((m) =>
+            mapGraphMessageToItem(m, account.id, now),
+          );
+          microsoft365ItemRepository.upsertItems(emailItems);
 
-      // Espelha os e-mails como tarefas no backend (lista "E-mail Sinalizados").
-      // Chamado SEMPRE (mesmo com lista vazia) para que o backend reconcilie:
-      // e-mails que deixaram de estar sinalizados concluem a tarefa vinculada.
-      // É idempotente; uma falha aqui não invalida o sync local.
-      try {
-        await taskApi.emailSync(
-          emailItems.map((it) => ({
-            external_id: it.externalId,
-            title: it.title,
-            preview: it.emailPreview ?? it.summary,
-            email_from: it.emailFrom,
-            received_at: it.emailReceivedAt,
-            web_link: it.webLink,
-          })),
-        );
-      } catch (err) {
-        ms365Logger.warn('microsoft_sync', 'espelhamento e-mail->tarefa falhou', {
-          error: err instanceof Error ? err.name : 'unknown',
-        });
+          // Espelha os e-mails como tarefas no backend (lista "E-mail Sinalizados").
+          // Chamado SEMPRE (mesmo vazio) por conta, com reconcile=true para que o
+          // backend conclua tarefas de e-mails que deixaram de estar sinalizados.
+          try {
+            await taskApi.emailSync(
+              emailItems.map((it) => ({
+                external_id: it.externalId,
+                title: it.title,
+                preview: it.emailPreview ?? it.summary,
+                email_from: it.emailFrom,
+                received_at: it.emailReceivedAt,
+                web_link: it.webLink,
+              })),
+              { accountId: account.id, reconcile: true },
+            );
+          } catch (err) {
+            ms365Logger.warn('microsoft_sync', 'espelhamento e-mail->tarefa falhou', {
+              error: err instanceof Error ? err.name : 'unknown',
+            });
+          }
+
+          microsoftAccountRepository.setLastSyncAt(account.id, now);
+          emailTotal += emailItems.length;
+        } catch (err) {
+          // Falha de uma conta não aborta as demais.
+          lastError = err;
+          ms365Logger.error('microsoft_sync', 'falha no sync da conta', {
+            accountId: account.id,
+            error: err instanceof Error ? err.name : 'unknown',
+          });
+        }
       }
 
-      microsoftAccountRepository.setLastSyncAt(account.id, now);
+      if (lastError && emailTotal === 0) {
+        return {
+          status: 'error',
+          emailCount: 0,
+          taskCount: 0,
+          syncedAt: Date.now(),
+          error: describeSyncError(lastError),
+        };
+      }
 
-      ms365Logger.info('microsoft_sync', 'sync finalizado', {
-        emailCount: emailItems.length,
-      });
-
+      ms365Logger.info('microsoft_sync', 'sync finalizado', { emailCount: emailTotal });
       return {
         status: 'success',
-        emailCount: emailItems.length,
+        emailCount: emailTotal,
         taskCount: 0,
-        syncedAt: now,
-      };
-    } catch (err) {
-      // Falha antes mesmo das chamadas (ex.: token/refresh).
-      ms365Logger.error('microsoft_sync', 'falha no sync', {
-        error: err instanceof Error ? err.name : 'unknown',
-      });
-      return {
-        status: 'error',
-        emailCount: 0,
-        taskCount: 0,
-        syncedAt: Date.now(),
-        error: describeSyncError(err),
+        syncedAt,
       };
     } finally {
       this.syncing = false;
@@ -186,18 +214,20 @@ export class RealMicrosoft365Service implements Microsoft365Service {
   }
 
   /**
-   * Indica se há uma sessão (conta + token) viável. Útil para o guard do sync
+   * Indica se há ALGUMA sessão (conta + token) viável. Útil para o guard do sync
    * automático. Assíncrono porque consulta o Secure Store.
    */
   async hasViableSession(): Promise<boolean> {
-    const account = microsoftAccountRepository.getAccount();
-    if (!account) return false;
-    return hasStoredSession();
+    const accounts = microsoftAccountRepository.getAccounts();
+    for (const account of accounts) {
+      if (await hasStoredSession(account.id)) return true;
+    }
+    return false;
   }
 
-  /** Expiração do token atual (epoch ms) ou null. */
-  async tokenExpiresAt(): Promise<number | null> {
-    return getTokenExpiresAt();
+  /** Expiração do token de uma conta (epoch ms) ou null. */
+  async tokenExpiresAt(accountId: string): Promise<number | null> {
+    return getTokenExpiresAt(accountId);
   }
 }
 

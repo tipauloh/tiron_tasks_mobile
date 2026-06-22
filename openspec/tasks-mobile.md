@@ -199,3 +199,6 @@ Backend (VPS): colunas email_* + sync grava + descrição 'Conforme e-mail abaix
 
 ### FEAT-EMAIL-TASK Etapa B ✅ (2026-06-22)
 Resync M365 no pull-to-refresh da lista de e-mail + polling 10s enquanto selecionada (index.tsx, via is_system).
+
+### FEAT-EMAIL-TASK Etapa C ✅ (2026-06-22)
+Multi-conta M365: tokens/itens/sync/escrita por conta (accountId=profile.id); lista única; external_account_id na tarefa; UI por conta. OTA.

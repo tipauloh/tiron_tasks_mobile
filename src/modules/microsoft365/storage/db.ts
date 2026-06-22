@@ -5,17 +5,30 @@
 
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { getDatabase } from '../../../infrastructure/database/db';
-import { CREATE_MS365_TABLES_SQL } from './schema';
+import { CREATE_MS365_TABLES_SQL, MS365_RECREATE_ON_MISSING_COLUMN } from './schema';
 
 let _migrated = false;
 
+/** True se a tabela EXISTE mas NÃO tem a coluna exigida (estrutura antiga). */
+function tableMissingColumn(db: SQLiteDatabase, table: string, column: string): boolean {
+  const cols = db.getAllSync<{ name: string }>(`PRAGMA table_info(${table})`);
+  return cols.length > 0 && !cols.some((c) => c.name === column);
+}
+
 /**
  * Retorna a conexão SQLite garantindo que as tabelas do módulo Microsoft 365
- * existem. A migração roda uma única vez por processo.
+ * existem. A migração roda uma vez por processo. As tabelas de cache que mudaram
+ * de chave para multi-conta (account_id) são recriadas UMA ÚNICA VEZ — só quando
+ * ainda estão na estrutura antiga —, sem apagar o cache nas aberturas seguintes.
  */
 export function getMs365Database(): SQLiteDatabase {
   const db = getDatabase();
   if (!_migrated) {
+    for (const { table, column } of MS365_RECREATE_ON_MISSING_COLUMN) {
+      if (tableMissingColumn(db, table, column)) {
+        db.execSync(`DROP TABLE IF EXISTS ${table};`);
+      }
+    }
     db.execSync(CREATE_MS365_TABLES_SQL);
     _migrated = true;
   }
