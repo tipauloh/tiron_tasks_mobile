@@ -21,6 +21,10 @@ import type { TaskPriority } from '@/domain/entities';
 import { useCreateTask } from '@/hooks/api/use-tasks';
 import { useTaskLists } from '@/hooks/api/use-task-lists';
 import { CalendarPicker } from '@/components/tasks/CalendarPicker';
+import { TimeRangePicker } from '@/components/tasks/TimeRangePicker';
+import { RecurrencePicker } from '@/components/tasks/RecurrencePicker';
+import { isValidTime, isEndAfterStart } from '@/utils/time';
+import type { ApiRecurrence } from '@/infrastructure/api/types';
 
 type DateShortcut = 'today' | 'tomorrow' | 'custom' | 'none';
 
@@ -67,6 +71,9 @@ export default function CreateTaskScreen() {
   const [dateShortcut, setDateShortcut] = useState<DateShortcut>('none');
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [recurrence, setRecurrence] = useState<ApiRecurrence | null>(null);
   const titleRef = useRef<TextInput>(null);
 
   // Pre-select date when navigated from calendar
@@ -84,11 +91,17 @@ export default function CreateTaskScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  const canCreate = title.trim().length > 0;
+  const timeValid =
+    isValidTime(startTime) && isValidTime(endTime) && isEndAfterStart(startTime, endTime);
+  const canCreate = title.trim().length > 0 && timeValid;
   const isLoading = createTask.isPending;
 
   async function handleCreate() {
-    if (!canCreate) return;
+    if (title.trim().length === 0) return;
+    if (!timeValid) {
+      Alert.alert('Horário inválido', 'Verifique os horários: use HH:MM e o fim deve ser ≥ o início.');
+      return;
+    }
     try {
       await createTask.mutateAsync({
         title: title.trim(),
@@ -96,6 +109,9 @@ export default function CreateTaskScreen() {
         priority,
         due_date: getDueDate(dateShortcut, customDate),
         task_list_id: selectedListId ? parseInt(selectedListId) : undefined,
+        start_time: startTime || null,
+        end_time: endTime || null,
+        recurrence,
         is_favorite: false,
       });
       router.back();
@@ -214,6 +230,21 @@ export default function CreateTaskScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+
+          <View style={styles.section}>
+            <SectionLabel label="Horário" />
+            <TimeRangePicker
+              start={startTime}
+              end={endTime}
+              onChangeStart={setStartTime}
+              onChangeEnd={setEndTime}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <SectionLabel label="Repetir" />
+            <RecurrencePicker value={recurrence} onChange={setRecurrence} />
           </View>
 
           <View style={[styles.section, { marginTop: Spacing[4] }]}>

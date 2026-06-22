@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { taskApi, type TaskListParams } from '@/infrastructure/api/task-api';
-import type { ApiTaskCreateRequest, ApiTaskUpdateRequest } from '@/infrastructure/api/types';
+import type { ApiTaskCreateRequest, ApiTaskReorderItem, ApiTaskUpdateRequest } from '@/infrastructure/api/types';
 import { DASHBOARD_QUERY_KEY } from './use-dashboard';
 
 export const TASKS_QUERY_KEY = (filters?: TaskListParams) =>
@@ -121,6 +121,16 @@ export function useToggleTaskStatus() {
       qc.invalidateQueries({ queryKey: ['tasks'] });
       qc.invalidateQueries({ queryKey: TASK_QUERY_KEY(id) });
       qc.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
+    },
+  });
+}
+
+export function useReorderTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: ApiTaskReorderItem[]) => taskApi.reorder(items),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 }

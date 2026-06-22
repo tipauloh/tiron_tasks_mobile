@@ -60,12 +60,24 @@ export interface ApiTaskList {
   color: string | null;
 }
 
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface ApiRecurrence {
+  frequency: RecurrenceFrequency;
+  interval: number;
+  by_weekday: number[] | null; // 0=Dom .. 6=Sáb
+  ends_at: string | null; // 'YYYY-MM-DD'
+}
+
 export interface ApiTaskSummary {
   id: number;
   title: string;
   status: string;
   priority: string;
   due_date: string | null;
+  start_time: string | null; // 'HH:MM'
+  end_time: string | null; // 'HH:MM'
+  recurrence: ApiRecurrence | null;
   is_favorite: boolean;
   completed_at: string | null;
   checklist_count: number;
@@ -90,6 +102,9 @@ export interface ApiTaskCreateRequest {
   status?: string;
   priority?: string;
   due_date?: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  recurrence?: ApiRecurrence | null;
   parent_id?: number;
   is_favorite?: boolean;
 }
@@ -100,8 +115,17 @@ export interface ApiTaskUpdateRequest {
   status?: string;
   priority?: string;
   due_date?: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  recurrence?: ApiRecurrence | null;
   is_favorite?: boolean;
   task_list_id?: number;
+}
+
+// Reorder
+export interface ApiTaskReorderItem {
+  id: number;
+  position: number;
 }
 
 // Task Lists

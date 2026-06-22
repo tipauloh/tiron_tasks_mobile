@@ -8,6 +8,9 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   dueDate?: string;       // ISO date 'YYYY-MM-DD'
+  startTime?: string;     // 'HH:MM'
+  endTime?: string;       // 'HH:MM'
+  isRecurring?: boolean;  // tem recorrência configurada
   listId?: string;
   parentId?: string;      // null = task raiz
   isFavorite: boolean;

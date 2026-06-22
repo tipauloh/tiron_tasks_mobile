@@ -3,6 +3,7 @@ import type {
   ApiDashboard,
   ApiTaskCreateRequest,
   ApiTaskDetail,
+  ApiTaskReorderItem,
   ApiTaskSummary,
   ApiTaskUpdateRequest,
   MessageResponse,
@@ -72,6 +73,10 @@ export const taskApi = {
 
   toggleFavorite(id: number, isFavorite: boolean): Promise<SingleResponse<ApiTaskSummary>> {
     return apiClient.patch(`${BASE}/${id}/favorite`, { is_favorite: isFavorite });
+  },
+
+  reorder(items: ApiTaskReorderItem[]): Promise<MessageResponse> {
+    return apiClient.patch(`${BASE}/reorder`, { items });
   },
 
   dashboard(): Promise<SingleResponse<ApiDashboard>> {

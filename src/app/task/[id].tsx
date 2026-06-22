@@ -22,6 +22,10 @@ import type { TaskStatus, TaskPriority } from '@/domain/entities';
 import { useTask, useUpdateTask, useDeleteTask } from '@/hooks/api/use-tasks';
 import { CalendarPicker } from '@/components/tasks/CalendarPicker';
 import { ListSelectorTrigger } from '@/components/tasks/ListSelector';
+import { TimeRangePicker } from '@/components/tasks/TimeRangePicker';
+import { RecurrencePicker } from '@/components/tasks/RecurrencePicker';
+import { isValidTime, isEndAfterStart } from '@/utils/time';
+import type { ApiRecurrence } from '@/infrastructure/api/types';
 
 const STATUS_OPTIONS: Array<{ value: TaskStatus; label: string; color: string; emoji: string }> = [
   { value: 'not_started', label: 'Não iniciada', color: Colors.statusNotStarted, emoji: '⭕' },
@@ -57,6 +61,9 @@ export default function TaskDetailScreen() {
   const [priority, setPriority] = useState<TaskPriority>('normal');
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [listId, setListId] = useState<string | undefined>(undefined);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [recurrence, setRecurrence] = useState<ApiRecurrence | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -73,12 +80,22 @@ export default function TaskDetailScreen() {
         setDueDate(null);
       }
       setListId(task.task_list ? String(task.task_list.id) : undefined);
+      setStartTime(task.start_time ?? '');
+      setEndTime(task.end_time ?? '');
+      setRecurrence(task.recurrence ?? null);
       setIsDirty(false);
     }
   }, [task?.id]);
 
+  const timeValid =
+    isValidTime(startTime) && isValidTime(endTime) && isEndAfterStart(startTime, endTime);
+
   const handleSave = useCallback(async () => {
     if (!task) return;
+    if (!timeValid) {
+      Alert.alert('Horário inválido', 'Verifique os horários: use HH:MM e o fim deve ser ≥ o início.');
+      return;
+    }
     await updateTask.mutateAsync({
       id: String(task.id),
       data: {
@@ -90,11 +107,14 @@ export default function TaskDetailScreen() {
           ? `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}-${String(dueDate.getDate()).padStart(2, '0')}`
           : null as unknown as undefined,
         task_list_id: listId ? parseInt(listId) : (null as unknown as undefined),
+        start_time: startTime || null,
+        end_time: endTime || null,
+        recurrence,
       },
     });
     setIsDirty(false);
     router.back();
-  }, [task, title, description, status, priority, dueDate, listId, updateTask, router]);
+  }, [task, title, description, status, priority, dueDate, listId, startTime, endTime, recurrence, timeValid, updateTask, router]);
 
   const handleDelete = useCallback(() => {
     if (!task) return;
@@ -145,8 +165,8 @@ export default function TaskDetailScreen() {
             <Text variant="body" style={{ color: Colors.primary }}>Fechar</Text>
           </TouchableOpacity>
           <Text variant="callout" weight="semibold">Tarefa</Text>
-          <TouchableOpacity onPress={handleSave} style={styles.headerBtn} disabled={!isDirty || !title.trim() || updateTask.isPending} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text variant="body" weight="semibold" style={{ color: isDirty && title.trim() ? Colors.primary : theme.colors.textTertiary }}>
+          <TouchableOpacity onPress={handleSave} style={styles.headerBtn} disabled={!isDirty || !title.trim() || !timeValid || updateTask.isPending} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text variant="body" weight="semibold" style={{ color: isDirty && title.trim() && timeValid ? Colors.primary : theme.colors.textTertiary }}>
               {updateTask.isPending ? 'Salvando...' : 'Salvar'}
             </Text>
           </TouchableOpacity>
@@ -246,6 +266,21 @@ export default function TaskDetailScreen() {
           />
 
           <View style={styles.section}>
+            <SectionLabel label="Horário" />
+            <TimeRangePicker
+              start={startTime}
+              end={endTime}
+              onChangeStart={(v) => { setStartTime(v); setIsDirty(true); }}
+              onChangeEnd={(v) => { setEndTime(v); setIsDirty(true); }}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <SectionLabel label="Repetir" />
+            <RecurrencePicker value={recurrence} onChange={(v) => { setRecurrence(v); setIsDirty(true); }} />
+          </View>
+
+          <View style={styles.section}>
             <SectionLabel label="Informações" />
             <View style={[styles.metaCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <View style={styles.metaRow}>
@@ -265,7 +300,7 @@ export default function TaskDetailScreen() {
             <Button
               title={updateTask.isPending ? 'Salvando...' : 'Salvar alterações'}
               onPress={handleSave}
-              disabled={!isDirty || !title.trim() || updateTask.isPending}
+              disabled={!isDirty || !title.trim() || !timeValid || updateTask.isPending}
               loading={updateTask.isPending}
               size="lg"
             />

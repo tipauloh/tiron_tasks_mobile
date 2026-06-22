@@ -24,8 +24,10 @@ import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY, type TaskR
 import { Card } from '@/components/ui/Card';
 import {
   useTasks, useMyDay, useImportantTasks, useUpcomingTasks,
-  useDeleteTask, useToggleTaskStatus, useToggleFavorite, useCreateTask,
+  useDeleteTask, useToggleTaskStatus, useToggleFavorite, useCreateTask, useReorderTasks,
 } from '@/hooks/api/use-tasks';
+import { DraggableTaskList } from '@/components/tasks/DraggableTaskList';
+import { partitionTasks } from '@/utils/group-tasks';
 import { useTaskLists, useArchiveTaskList } from '@/hooks/api/use-task-lists';
 import { useDashboard } from '@/hooks/api/use-dashboard';
 import { useAuthStore } from '@/store/auth-store';
@@ -39,6 +41,10 @@ type ViewMode = 'all' | 'today' | 'upcoming' | 'overdue' | 'favorites' | 'comple
 // marcadas como favoritas (estrela). Sempre aparece primeiro na barra de listas.
 const FOCUS_LIST_ID = '__focus__';
 const FOCUS_COLOR = '#7B4DFF';
+
+// Altura fixa de cada linha no modo reordenar (necessária para o cálculo de destino
+// do arraste). Aproxima a altura do TaskItem (2 linhas + meta + padding).
+const REORDER_ROW_HEIGHT = 64;
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -54,6 +60,9 @@ function apiTaskToLegacy(t: ApiTaskSummary) {
     status: t.status as 'not_started' | 'in_progress' | 'completed' | 'cancelled',
     priority: t.priority as 'low' | 'normal' | 'high' | 'critical',
     dueDate: t.due_date ?? undefined,
+    startTime: t.start_time ?? undefined,
+    endTime: t.end_time ?? undefined,
+    isRecurring: !!t.recurrence,
     isFavorite: t.is_favorite,
     position: 0,
     completedAt: t.completed_at ?? undefined,
@@ -136,8 +145,10 @@ export default function TasksScreen() {
   const toggleStatus = useToggleTaskStatus();
   const toggleFav = useToggleFavorite();
   const createTask = useCreateTask();
+  const reorderTasks = useReorderTasks();
 
   const [quickTitle, setQuickTitle] = useState('');
+  const [reorderMode, setReorderMode] = useState(false);
 
   // Debounce search
   useEffect(() => {
@@ -192,14 +203,36 @@ export default function TasksScreen() {
 
   const tasks = apiTasks.map(apiTaskToLegacy);
 
+  // Reordenar só faz sentido em listas estáveis: "Todas" (sem filtro) ou uma lista
+  // específica — não em buscas nem em visões derivadas (hoje/atrasadas/etc.).
+  const canReorder = !isSearching && !isFocus && (viewMode as ViewMode) === 'all';
+  const pendingTasks = useMemo(() => partitionTasks(tasks).pending, [tasks]);
+  const showReorder = reorderMode && canReorder && pendingTasks.length > 1;
+
+  const handleReorder = useCallback(
+    (ordered: typeof pendingTasks) => {
+      reorderTasks.mutate(
+        ordered.map((t, index) => ({ id: parseInt(t.id), position: index })),
+      );
+    },
+    [reorderTasks],
+  );
+
   // No modo "Concluídas" a lista já é só de concluídas — mantém plana. Nos demais,
   // agrupa concluídas numa seção recolhível abaixo das pendentes.
   const rows = useMemo<TaskRow<(typeof tasks)[number]>[]>(() => {
     if (!isSearching && (viewMode as ViewMode) === 'completed') {
       return tasks.map((task) => ({ kind: 'task', task }));
     }
-    return buildTaskRows(tasks, showCompleted);
-  }, [tasks, showCompleted, isSearching, viewMode]);
+    const built = buildTaskRows(tasks, showCompleted);
+    // No modo reordenar, as pendentes são renderizadas pelo DraggableTaskList no
+    // header — então removemos as linhas de tarefa pendente da FlatList, mantendo
+    // apenas o cabeçalho/itens de "Concluídas".
+    if (showReorder) {
+      return built.filter((r) => r.kind !== 'task' || r.task.status === 'completed');
+    }
+    return built;
+  }, [tasks, showCompleted, isSearching, viewMode, showReorder]);
 
   const handleRefresh = () => {
     allQuery.refetch();
@@ -340,6 +373,49 @@ export default function TasksScreen() {
           </Text>
         </View>
       )}
+
+      {/* Botão para alternar o modo de reordenar (arrastar com long-press) */}
+      {canReorder && pendingTasks.length > 1 && (
+        <View style={styles.reorderBar}>
+          <TouchableOpacity
+            onPress={() => setReorderMode((v) => !v)}
+            style={[styles.reorderToggle, { borderColor: reorderMode ? Colors.primary : theme.colors.border, backgroundColor: reorderMode ? Colors.primary + '15' : 'transparent' }]}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Text style={{ fontSize: 13, color: reorderMode ? Colors.primary : theme.colors.textSecondary, fontWeight: '600' }}>
+              {reorderMode ? '✓ Concluir reordenação' : '↕ Reordenar'}
+            </Text>
+          </TouchableOpacity>
+          {reorderMode && (
+            <Text style={{ fontSize: 12, color: theme.colors.textTertiary }}>
+              Segure e arraste para mover
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* Lista arrastável (substitui as pendentes da FlatList enquanto ativo) */}
+      {showReorder && (
+        <DraggableTaskList
+          data={pendingTasks}
+          keyExtractor={(t) => t.id}
+          itemHeight={REORDER_ROW_HEIGHT}
+          onReorder={handleReorder}
+          renderItem={(item) => (
+            <View style={{ height: REORDER_ROW_HEIGHT, justifyContent: 'center' }}>
+              <TaskItem
+                task={item}
+                onToggle={() => {
+                  const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
+                  toggleStatus.mutate({ id: item.id, status: newStatus });
+                }}
+                onPress={() => router.push(`/task/${item.id}` as never)}
+                onFavorite={() => toggleFav.mutate({ id: item.id, isFavorite: !item.isFavorite })}
+              />
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 
@@ -475,6 +551,10 @@ const styles = StyleSheet.create({
   listTabText: { fontSize: 13, fontWeight: '500' },
   actionTab: { borderStyle: 'dashed' },
   editIcon: { fontSize: 13 },
+
+  // Reorder
+  reorderBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], paddingHorizontal: Spacing[4], paddingBottom: Spacing[2] },
+  reorderToggle: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9999, borderWidth: 1 },
 
   // Task list
   list: { paddingBottom: 96 },

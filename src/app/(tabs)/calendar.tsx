@@ -21,6 +21,7 @@ import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { useAllTasksForCalendar, useDeleteTask, useToggleTaskStatus, useToggleFavorite } from '@/hooks/api/use-tasks';
 import type { ApiTaskSummary } from '@/infrastructure/api/types';
+import { expandRecurrence } from '@/utils/recurrence';
 
 // ─── Calendar constants ───────────────────────────────────────────────────────
 
@@ -65,6 +66,9 @@ function apiTaskToLegacy(t: ApiTaskSummary) {
     status: t.status as 'not_started' | 'in_progress' | 'completed' | 'cancelled',
     priority: t.priority as 'low' | 'normal' | 'high' | 'critical',
     dueDate: t.due_date ?? undefined,
+    startTime: t.start_time ?? undefined,
+    endTime: t.end_time ?? undefined,
+    isRecurring: !!t.recurrence,
     isFavorite: t.is_favorite,
     position: 0,
     completedAt: t.completed_at ?? undefined,
@@ -114,19 +118,36 @@ export default function CalendarScreen() {
   const toggleStatus = useToggleTaskStatus();
   const toggleFav = useToggleFavorite();
 
-  // Map dateStr → tasks[]
+  // Map dateStr → tasks[]. Tarefas com recorrência são EXPANDIDAS no cliente para
+  // todas as datas geradas dentro do mês visível (a mesma tarefa aparece em vários
+  // dias). Tarefas sem recorrência aparecem só na due_date.
   const tasksByDate = useMemo(() => {
     const map = new Map<string, ApiTaskSummary[]>();
+    // Range = mês inteiro exibido (1º dia ao último).
+    const rangeStart = toDateStr(new Date(displayYear, displayMonth, 1));
+    const rangeEnd = toDateStr(new Date(displayYear, displayMonth + 1, 0));
+
+    const add = (dateStr: string, task: ApiTaskSummary) => {
+      const existing = map.get(dateStr) ?? [];
+      map.set(dateStr, [...existing, task]);
+    };
+
     for (const task of allTasks) {
-      if (task.due_date) {
-        // slice(0,10) handles both 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM:SS' and ISO formats
-        const dateStr = task.due_date.slice(0, 10);
-        const existing = map.get(dateStr) ?? [];
-        map.set(dateStr, [...existing, task]);
+      if (!task.due_date) continue;
+      if (task.recurrence) {
+        const occurrences = expandRecurrence(
+          { due_date: task.due_date.slice(0, 10), recurrence: task.recurrence },
+          rangeStart,
+          rangeEnd,
+        );
+        for (const dateStr of occurrences) add(dateStr, task);
+      } else {
+        // slice(0,10) handles 'YYYY-MM-DD' e formatos com hora/ISO.
+        add(task.due_date.slice(0, 10), task);
       }
     }
     return map;
-  }, [allTasks]);
+  }, [allTasks, displayYear, displayMonth]);
 
   const selectedDateStr = toDateStr(selectedDate);
   const selectedTasks = (tasksByDate.get(selectedDateStr) ?? []).map(apiTaskToLegacy);

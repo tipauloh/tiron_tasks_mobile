@@ -72,6 +72,16 @@ export function TaskItem({ task, onToggle, onPress, onFavorite }: TaskItemProps)
 
           <View style={styles.meta}>
             {task.dueDate && <DueDateLabel dueDate={task.dueDate} />}
+            {task.startTime && (
+              <Text variant="caption" style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>
+                🕘 {task.startTime}{task.endTime ? `–${task.endTime}` : ''}
+              </Text>
+            )}
+            {task.isRecurring && (
+              <Text variant="caption" style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>
+                🔁
+              </Text>
+            )}
             <PriorityBadge priority={task.priority} size="sm" />
           </View>
         </View>
@@ -123,6 +133,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing[2],
     flexWrap: 'wrap',
+  },
+  timeLabel: {
+    fontSize: 12,
   },
   favoriteButton: {
     alignItems: 'center',
