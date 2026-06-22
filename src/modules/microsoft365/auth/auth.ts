@@ -72,17 +72,22 @@ export interface StoredTokens {
   expiresAt: number; // epoch ms
 }
 
+// As chaves do expo-secure-store SÓ aceitam [A-Za-z0-9._-] (sem ':' ou outros).
+// Por isso o separador é '_' e o id é sanitizado.
+function safeAccountId(accountId: string): string {
+  return accountId.replace(/[^A-Za-z0-9._-]/g, '_');
+}
 /** Chave do access token de uma conta. */
 function accessKey(accountId: string): string {
-  return `${SECURE_KEYS.accessToken}:${accountId}`;
+  return `${SECURE_KEYS.accessToken}_${safeAccountId(accountId)}`;
 }
 /** Chave do refresh token de uma conta. */
 function refreshKey(accountId: string): string {
-  return `${SECURE_KEYS.refreshToken}:${accountId}`;
+  return `${SECURE_KEYS.refreshToken}_${safeAccountId(accountId)}`;
 }
 /** Chave da expiração (não sensível) do access token de uma conta. */
 function expKey(accountId: string): string {
-  return `${SECURE_KEYS.accessToken}:${accountId}_exp`;
+  return `${SECURE_KEYS.accessToken}_${safeAccountId(accountId)}_exp`;
 }
 
 async function persistTokens(accountId: string, tokens: StoredTokens): Promise<void> {

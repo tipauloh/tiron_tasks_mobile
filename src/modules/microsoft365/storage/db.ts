@@ -30,6 +30,10 @@ export function getMs365Database(): SQLiteDatabase {
       }
     }
     db.execSync(CREATE_MS365_TABLES_SQL);
+    // Remove contas LEGADAS do single-account: lá o id era um UUID local (≠
+    // microsoft_user_id) e os tokens ficavam numa chave fixa, incompatível com o
+    // multi-conta. Precisam ser reconectadas; sem isto virariam contas-fantasma.
+    db.execSync('DELETE FROM ms365_account_meta WHERE id <> microsoft_user_id;');
     _migrated = true;
   }
   return db;

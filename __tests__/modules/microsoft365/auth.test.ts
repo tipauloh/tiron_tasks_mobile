@@ -44,9 +44,10 @@ import { SECURE_KEYS } from '../../../src/modules/microsoft365/constants';
 
 // MULTI-CONTA: as chaves do Secure Store recebem o accountId como sufixo.
 const ACC = 'acc-1';
-const ACCESS_KEY = `${SECURE_KEYS.accessToken}:${ACC}`;
-const REFRESH_KEY = `${SECURE_KEYS.refreshToken}:${ACC}`;
-const EXP_KEY = `${SECURE_KEYS.accessToken}:${ACC}_exp`;
+// Separador '_' (o ':' é inválido para chaves do expo-secure-store).
+const ACCESS_KEY = `${SECURE_KEYS.accessToken}_${ACC}`;
+const REFRESH_KEY = `${SECURE_KEYS.refreshToken}_${ACC}`;
+const EXP_KEY = `${SECURE_KEYS.accessToken}_${ACC}_exp`;
 
 function clearStore() {
   for (const k of Object.keys(secureStore)) delete secureStore[k];
