@@ -51,7 +51,12 @@ export interface ApiChecklistItem {
 export interface ApiReminder {
   id: number;
   remind_at: string;
-  notified_at: string | null;
+  notified_at?: string | null;
+}
+
+export interface ApiReminderCreateRequest {
+  // 'YYYY-MM-DDTHH:MM:SS'
+  remind_at: string;
 }
 
 export interface ApiTaskList {
@@ -129,6 +134,8 @@ export interface ApiTaskReorderItem {
 }
 
 // Task Lists
+export type TaskListRole = 'admin' | 'member';
+
 export interface ApiTaskListFull {
   id: number;
   name: string;
@@ -138,6 +145,28 @@ export interface ApiTaskListFull {
   archived_at: string | null;
   created_at: string | null;
   updated_at: string | null;
+  // Compartilhamento — o backend passou a retornar estes campos.
+  role?: TaskListRole;
+  shared?: boolean;
+}
+
+export interface ApiTaskListMember {
+  mobile_user_id: number;
+  name: string;
+  email: string;
+  role: TaskListRole;
+}
+
+export interface ApiTaskListMemberCreateRequest {
+  email: string;
+}
+
+// Resposta de POST /task-lists/{id}/members (não traz mobile_user_id)
+export interface ApiTaskListMemberCreated {
+  id: number;
+  name: string;
+  email: string;
+  role: TaskListRole;
 }
 
 export interface ApiTaskListCreateRequest {

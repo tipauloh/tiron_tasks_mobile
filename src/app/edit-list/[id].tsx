@@ -20,6 +20,7 @@ import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
 import { useTaskLists, useUpdateTaskList, useArchiveTaskList } from '@/hooks/api/use-task-lists';
 import { useFilterStore } from '@/store/filter-store';
+import { ListMembersSection } from '@/components/tasks/ListMembersSection';
 
 const PRESET_COLORS = [
   '#208AEF', '#10B981', '#F59E0B', '#EF4444',
@@ -151,6 +152,9 @@ export default function EditListScreen() {
             <Text variant="body" weight="semibold" style={{ color: name.trim() ? theme.colors.text : theme.colors.textTertiary }}>
               {name.trim() || 'Nome da lista'}
             </Text>
+            {list?.shared && (
+              <Text variant="caption" secondary style={{ marginLeft: 'auto' }}>👥 Compartilhada</Text>
+            )}
           </View>
 
           {/* Name */}
@@ -222,6 +226,11 @@ export default function EditListScreen() {
               ))}
             </View>
           </View>
+
+          {/* Compartilhar / Membros */}
+          {list && id && (
+            <ListMembersSection listId={parseInt(id)} currentUserRole={list.role ?? 'admin'} />
+          )}
 
           <View style={[styles.section, { marginTop: Spacing[4] }]}>
             <Button

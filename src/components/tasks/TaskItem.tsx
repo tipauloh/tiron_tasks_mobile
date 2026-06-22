@@ -20,9 +20,11 @@ interface TaskItemProps {
   onToggle: (id: string) => void;
   onPress: (task: Task) => void;
   onFavorite: (id: string) => void;
+  /** Quando true, esconde o separador inferior (use no último item da lista). */
+  isLast?: boolean;
 }
 
-export function TaskItem({ task, onToggle, onPress, onFavorite }: TaskItemProps) {
+export function TaskItem({ task, onToggle, onPress, onFavorite, isLast = false }: TaskItemProps) {
   const { theme } = useTheme();
   const isCompleted = task.status === 'completed';
 
@@ -42,7 +44,13 @@ export function TaskItem({ task, onToggle, onPress, onFavorite }: TaskItemProps)
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       <TouchableOpacity
-        style={[styles.row, { borderBottomColor: theme.colors.borderLight }]}
+        style={[
+          styles.row,
+          {
+            borderBottomColor: theme.colors.borderLight,
+            borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+          },
+        ]}
         onPress={() => onPress(task)}
         activeOpacity={0.7}
       >
@@ -111,7 +119,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing[3],
     paddingHorizontal: Spacing[4],
-    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: Spacing[3],
   },
   checkboxWrapper: {

@@ -19,11 +19,19 @@ import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
 import type { TaskStatus, TaskPriority } from '@/domain/entities';
-import { useTask, useUpdateTask, useDeleteTask } from '@/hooks/api/use-tasks';
+import { useTask, useUpdateTask, useDeleteTask, useAddReminder, useDeleteReminder } from '@/hooks/api/use-tasks';
 import { CalendarPicker } from '@/components/tasks/CalendarPicker';
 import { ListSelectorTrigger } from '@/components/tasks/ListSelector';
 import { TimeRangePicker } from '@/components/tasks/TimeRangePicker';
 import { RecurrencePicker } from '@/components/tasks/RecurrencePicker';
+import {
+  ReminderPicker,
+  computeRelativeRemindAt,
+  toLocalIso,
+  type ReminderOptionKey,
+} from '@/components/tasks/ReminderPicker';
+import { scheduleTaskReminder } from '@/lib/notifications';
+import { parseLocalIso } from '@/lib/notifications';
 import { isValidTime, isEndAfterStart } from '@/utils/time';
 import type { ApiRecurrence } from '@/infrastructure/api/types';
 
@@ -54,6 +62,8 @@ export default function TaskDetailScreen() {
   const { data: task, isLoading } = useTask(id ?? '');
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const addReminder = useAddReminder();
+  const deleteReminder = useDeleteReminder();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -66,6 +76,9 @@ export default function TaskDetailScreen() {
   const [recurrence, setRecurrence] = useState<ApiRecurrence | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [reminderKey, setReminderKey] = useState<ReminderOptionKey>('none');
+  const [reminderCustomDate, setReminderCustomDate] = useState<Date | null>(null);
+  const [reminderCustomTime, setReminderCustomTime] = useState('');
 
   useEffect(() => {
     if (task) {
@@ -123,6 +136,52 @@ export default function TaskDetailScreen() {
       { text: 'Excluir', style: 'destructive', onPress: async () => { await deleteTask.mutateAsync(String(task.id)); router.back(); } },
     ]);
   }, [task, deleteTask, router]);
+
+  const dueDateStr = dueDate
+    ? `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}-${String(dueDate.getDate()).padStart(2, '0')}`
+    : null;
+
+  const handleAddReminder = useCallback(async () => {
+    if (!task || reminderKey === 'none') return;
+    let remindAtDate: Date | null = null;
+    if (reminderKey === 'custom') {
+      if (!reminderCustomDate || !reminderCustomTime || !isValidTime(reminderCustomTime)) {
+        Alert.alert('Lembrete incompleto', 'Escolha a data e a hora do lembrete.');
+        return;
+      }
+      const [h, mi] = reminderCustomTime.split(':').map((n) => parseInt(n, 10));
+      remindAtDate = new Date(reminderCustomDate);
+      remindAtDate.setHours(h, mi, 0, 0);
+    } else {
+      remindAtDate = computeRelativeRemindAt(reminderKey, dueDateStr, startTime);
+      if (!remindAtDate) {
+        Alert.alert('Sem data', 'Defina a data de entrega da tarefa antes de usar lembretes relativos.');
+        return;
+      }
+    }
+    const remindAtIso = toLocalIso(remindAtDate);
+    try {
+      await addReminder.mutateAsync({ taskId: task.id, remindAt: remindAtIso });
+      await scheduleTaskReminder({ id: task.id, title: title.trim() || task.title }, remindAtIso);
+      setReminderKey('none');
+      setReminderCustomDate(null);
+      setReminderCustomTime('');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível salvar o lembrete.');
+    }
+  }, [task, reminderKey, reminderCustomDate, reminderCustomTime, dueDateStr, startTime, title, addReminder]);
+
+  const handleDeleteReminder = useCallback(
+    async (reminderId: number) => {
+      if (!task) return;
+      try {
+        await deleteReminder.mutateAsync({ reminderId, taskId: task.id });
+      } catch {
+        Alert.alert('Erro', 'Não foi possível remover o lembrete.');
+      }
+    },
+    [task, deleteReminder],
+  );
 
   function handleClose() {
     if (isDirty) {
@@ -281,6 +340,60 @@ export default function TaskDetailScreen() {
           </View>
 
           <View style={styles.section}>
+            <SectionLabel label="Lembrete" />
+            {task.reminders && task.reminders.length > 0 && (
+              <View style={{ gap: Spacing[2] }}>
+                {task.reminders.map((r) => {
+                  const d = parseLocalIso(r.remind_at);
+                  return (
+                    <View
+                      key={r.id}
+                      style={[styles.reminderRow, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+                    >
+                      <Text style={{ fontSize: 16 }}>🔔</Text>
+                      <Text variant="body" style={{ flex: 1, color: theme.colors.text }}>
+                        {d
+                          ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) +
+                            ' às ' +
+                            `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+                          : r.remind_at}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteReminder(r.id)}
+                        disabled={deleteReminder.isPending}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={{ color: Colors.danger, fontSize: 13 }}>Remover</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+            <ReminderPicker
+              selected={reminderKey}
+              customDate={reminderCustomDate}
+              customTime={reminderCustomTime}
+              onChange={(key, cd, ct) => {
+                setReminderKey(key);
+                setReminderCustomDate(cd);
+                setReminderCustomTime(ct);
+              }}
+              baseDueDate={dueDateStr}
+              baseTime={startTime}
+            />
+            {reminderKey !== 'none' && (
+              <Button
+                title={addReminder.isPending ? 'Salvando...' : 'Adicionar lembrete'}
+                onPress={handleAddReminder}
+                disabled={addReminder.isPending}
+                variant="secondary"
+                size="md"
+              />
+            )}
+          </View>
+
+          <View style={styles.section}>
             <SectionLabel label="Informações" />
             <View style={[styles.metaCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <View style={styles.metaRow}>
@@ -328,6 +441,7 @@ const styles = StyleSheet.create({
   selectorRow: { flexDirection: 'row', gap: Spacing[1.5] },
   priorityOption: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing[2], paddingHorizontal: Spacing[1], borderRadius: Radius.md, borderWidth: 1.5, gap: 2 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], padding: Spacing[3], borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth },
+  reminderRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2], padding: Spacing[3], borderRadius: Radius.md, borderWidth: 1 },
   metaCard: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', padding: Spacing[3] },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing[4] },

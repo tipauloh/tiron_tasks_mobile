@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import type {
   ApiDashboard,
+  ApiReminder,
   ApiTaskCreateRequest,
   ApiTaskDetail,
   ApiTaskReorderItem,
@@ -81,5 +82,15 @@ export const taskApi = {
 
   dashboard(): Promise<SingleResponse<ApiDashboard>> {
     return apiClient.get('/api/v1/dashboard');
+  },
+
+  // Lembretes
+  // remindAt: 'YYYY-MM-DDTHH:MM:SS'
+  addReminder(taskId: number, remindAt: string): Promise<SingleResponse<ApiReminder>> {
+    return apiClient.post(`${BASE}/${taskId}/reminders`, { remind_at: remindAt });
+  },
+
+  deleteReminder(reminderId: number): Promise<MessageResponse> {
+    return apiClient.delete(`${BASE}/reminders/${reminderId}`);
   },
 };

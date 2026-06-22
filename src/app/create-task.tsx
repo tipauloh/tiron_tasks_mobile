@@ -23,6 +23,14 @@ import { useTaskLists } from '@/hooks/api/use-task-lists';
 import { CalendarPicker } from '@/components/tasks/CalendarPicker';
 import { TimeRangePicker } from '@/components/tasks/TimeRangePicker';
 import { RecurrencePicker } from '@/components/tasks/RecurrencePicker';
+import {
+  ReminderPicker,
+  computeRelativeRemindAt,
+  toLocalIso,
+  type ReminderOptionKey,
+} from '@/components/tasks/ReminderPicker';
+import { useAddReminder } from '@/hooks/api/use-tasks';
+import { scheduleTaskReminder } from '@/lib/notifications';
 import { isValidTime, isEndAfterStart } from '@/utils/time';
 import type { ApiRecurrence } from '@/infrastructure/api/types';
 
@@ -62,6 +70,7 @@ export default function CreateTaskScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const createTask = useCreateTask();
+  const addReminder = useAddReminder();
   const { data: lists = [] } = useTaskLists();
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
 
@@ -74,6 +83,9 @@ export default function CreateTaskScreen() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [recurrence, setRecurrence] = useState<ApiRecurrence | null>(null);
+  const [reminderKey, setReminderKey] = useState<ReminderOptionKey>('none');
+  const [reminderCustomDate, setReminderCustomDate] = useState<Date | null>(null);
+  const [reminderCustomTime, setReminderCustomTime] = useState('');
   const titleRef = useRef<TextInput>(null);
 
   // Pre-select date when navigated from calendar
@@ -102,22 +114,47 @@ export default function CreateTaskScreen() {
       Alert.alert('Horário inválido', 'Verifique os horários: use HH:MM e o fim deve ser ≥ o início.');
       return;
     }
+    const dueDate = getDueDate(dateShortcut, customDate);
+    const remindAtDate = resolveRemindAtDate(dueDate);
     try {
-      await createTask.mutateAsync({
+      const created = await createTask.mutateAsync({
         title: title.trim(),
         status: 'not_started',
         priority,
-        due_date: getDueDate(dateShortcut, customDate),
+        due_date: dueDate,
         task_list_id: selectedListId ? parseInt(selectedListId) : undefined,
         start_time: startTime || null,
         end_time: endTime || null,
         recurrence,
         is_favorite: false,
       });
+      // Lembrete: persiste no backend e agenda a notificação local.
+      if (remindAtDate) {
+        const remindAtIso = toLocalIso(remindAtDate);
+        try {
+          await addReminder.mutateAsync({ taskId: created.data.id, remindAt: remindAtIso });
+          await scheduleTaskReminder({ id: created.data.id, title: title.trim() }, remindAtIso);
+        } catch {
+          // Não bloqueia a criação da tarefa por causa do lembrete.
+        }
+      }
       router.back();
     } catch {
       Alert.alert('Erro', 'Não foi possível criar a tarefa. Tente novamente.');
     }
+  }
+
+  /** Resolve a Date do lembrete conforme a opção escolhida; null se 'Nenhum' ou inválida. */
+  function resolveRemindAtDate(dueDate: string | undefined): Date | null {
+    if (reminderKey === 'none') return null;
+    if (reminderKey === 'custom') {
+      if (!reminderCustomDate || !isValidTime(reminderCustomTime) || !reminderCustomTime) return null;
+      const [h, mi] = reminderCustomTime.split(':').map((n) => parseInt(n, 10));
+      const d = new Date(reminderCustomDate);
+      d.setHours(h, mi, 0, 0);
+      return d;
+    }
+    return computeRelativeRemindAt(reminderKey, dueDate ?? null, startTime);
   }
 
   return (
@@ -245,6 +282,22 @@ export default function CreateTaskScreen() {
           <View style={styles.section}>
             <SectionLabel label="Repetir" />
             <RecurrencePicker value={recurrence} onChange={setRecurrence} />
+          </View>
+
+          <View style={styles.section}>
+            <SectionLabel label="Lembrete" />
+            <ReminderPicker
+              selected={reminderKey}
+              customDate={reminderCustomDate}
+              customTime={reminderCustomTime}
+              onChange={(key, cd, ct) => {
+                setReminderKey(key);
+                setReminderCustomDate(cd);
+                setReminderCustomTime(ct);
+              }}
+              baseDueDate={getDueDate(dateShortcut, customDate) ?? null}
+              baseTime={startTime}
+            />
           </View>
 
           <View style={[styles.section, { marginTop: Spacing[4] }]}>

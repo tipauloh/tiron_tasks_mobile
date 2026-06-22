@@ -12,10 +12,12 @@ import {
   RefreshControl,
   Platform,
   KeyboardAvoidingView,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useSharedValue } from 'react-native-reanimated';
 import { useFilterStore } from '@/store/filter-store';
 import { useTheme } from '@/hooks/use-theme';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -42,9 +44,11 @@ type ViewMode = 'all' | 'today' | 'upcoming' | 'overdue' | 'favorites' | 'comple
 const FOCUS_LIST_ID = '__focus__';
 const FOCUS_COLOR = '#7B4DFF';
 
-// Altura fixa de cada linha no modo reordenar (necessária para o cálculo de destino
-// do arraste). Aproxima a altura do TaskItem (2 linhas + meta + padding).
-const REORDER_ROW_HEIGHT = 64;
+// Altura fixa de cada linha arrastável (necessária para o cálculo de destino do
+// arraste). Aproxima a altura do TaskItem (2 linhas + meta + padding).
+const REORDER_ROW_HEIGHT = 72;
+// Velocidade do auto-scroll (px por frame) quando o item se aproxima das bordas.
+const AUTO_SCROLL_SPEED = 9;
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -106,12 +110,13 @@ function StatCard({
 
 // ─── TaskItemSwipeable ───────────────────────────────────────────────────────
 
-function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete }: {
+function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLast }: {
   task: ReturnType<typeof apiTaskToLegacy>;
   onToggle: () => void;
   onPress: () => void;
   onFavorite: () => void;
   onDelete: () => void;
+  isLast?: boolean;
 }) {
   const swipeableRef = useRef<Swipeable>(null);
   const renderRightActions = useCallback(() => (
@@ -122,7 +127,7 @@ function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete }: {
 
   return (
     <Swipeable ref={swipeableRef} renderRightActions={renderRightActions} rightThreshold={60} friction={2}>
-      <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} />
+      <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} isLast={isLast} />
     </Swipeable>
   );
 }
@@ -148,7 +153,49 @@ export default function TasksScreen() {
   const reorderTasks = useReorderTasks();
 
   const [quickTitle, setQuickTitle] = useState('');
-  const [reorderMode, setReorderMode] = useState(false);
+
+  // ─── Auto-scroll do arraste ────────────────────────────────────────────────
+  const listRef = useRef<FlatList>(null);
+  const scrollOffset = useRef(0);
+  const viewportHeight = useRef(0);
+  const [viewport, setViewport] = useState(0);
+  // Y absoluto (na tela) do topo da janela de scroll — usado para auto-scroll.
+  const containerTopY = useSharedValue(0);
+  const autoScrollDir = useRef<-1 | 0 | 1>(0);
+  const autoScrollRaf = useRef<number | null>(null);
+
+  const stepAutoScroll = useCallback(() => {
+    const dir = autoScrollDir.current;
+    if (dir === 0) {
+      autoScrollRaf.current = null;
+      return;
+    }
+    scrollOffset.current = Math.max(0, scrollOffset.current + dir * AUTO_SCROLL_SPEED);
+    listRef.current?.scrollToOffset({ offset: scrollOffset.current, animated: false });
+    autoScrollRaf.current = requestAnimationFrame(stepAutoScroll);
+  }, []);
+
+  const handleAutoScroll = useCallback((dir: -1 | 0 | 1) => {
+    autoScrollDir.current = dir;
+    if (dir !== 0 && autoScrollRaf.current == null) {
+      autoScrollRaf.current = requestAnimationFrame(stepAutoScroll);
+    }
+  }, [stepAutoScroll]);
+
+  useEffect(() => () => {
+    if (autoScrollRaf.current != null) cancelAnimationFrame(autoScrollRaf.current);
+  }, []);
+
+  const handleListLayout = useCallback((e: LayoutChangeEvent) => {
+    viewportHeight.current = e.nativeEvent.layout.height;
+    setViewport(e.nativeEvent.layout.height);
+    // mede a posição absoluta na tela (topo do viewport) p/ o cálculo das bordas
+    // do auto-scroll. FlatList encaminha measureInWindow ao ScrollView nativo.
+    const node = listRef.current as unknown as {
+      measureInWindow?: (cb: (x: number, y: number) => void) => void;
+    } | null;
+    node?.measureInWindow?.((_x, y) => { containerTopY.value = y; });
+  }, [containerTopY]);
 
   // Debounce search
   useEffect(() => {
@@ -203,11 +250,13 @@ export default function TasksScreen() {
 
   const tasks = apiTasks.map(apiTaskToLegacy);
 
-  // Reordenar só faz sentido em listas estáveis: "Todas" (sem filtro) ou uma lista
-  // específica — não em buscas nem em visões derivadas (hoje/atrasadas/etc.).
+  // Reordenar (arraste sempre ativo) só faz sentido em listas estáveis: "Todas"
+  // (sem filtro) ou uma lista específica — não em buscas nem em visões derivadas
+  // (hoje/atrasadas/em foco/etc.).
   const canReorder = !isSearching && !isFocus && (viewMode as ViewMode) === 'all';
   const pendingTasks = useMemo(() => partitionTasks(tasks).pending, [tasks]);
-  const showReorder = reorderMode && canReorder && pendingTasks.length > 1;
+  // Quando elegível e há mais de uma pendente, as pendentes viram lista arrastável.
+  const showReorder = canReorder && pendingTasks.length > 1;
 
   const handleReorder = useCallback(
     (ordered: typeof pendingTasks) => {
@@ -225,9 +274,9 @@ export default function TasksScreen() {
       return tasks.map((task) => ({ kind: 'task', task }));
     }
     const built = buildTaskRows(tasks, showCompleted);
-    // No modo reordenar, as pendentes são renderizadas pelo DraggableTaskList no
-    // header — então removemos as linhas de tarefa pendente da FlatList, mantendo
-    // apenas o cabeçalho/itens de "Concluídas".
+    // Quando o arraste está ativo, as pendentes são renderizadas pelo
+    // DraggableTaskList (no header) — então removemos as linhas de tarefa pendente
+    // da FlatList, mantendo apenas o cabeçalho/itens de "Concluídas".
     if (showReorder) {
       return built.filter((r) => r.kind !== 'task' || r.task.status === 'completed');
     }
@@ -374,43 +423,38 @@ export default function TasksScreen() {
         </View>
       )}
 
-      {/* Botão para alternar o modo de reordenar (arrastar com long-press) */}
-      {canReorder && pendingTasks.length > 1 && (
-        <View style={styles.reorderBar}>
-          <TouchableOpacity
-            onPress={() => setReorderMode((v) => !v)}
-            style={[styles.reorderToggle, { borderColor: reorderMode ? Colors.primary : theme.colors.border, backgroundColor: reorderMode ? Colors.primary + '15' : 'transparent' }]}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          >
-            <Text style={{ fontSize: 13, color: reorderMode ? Colors.primary : theme.colors.textSecondary, fontWeight: '600' }}>
-              {reorderMode ? '✓ Concluir reordenação' : '↕ Reordenar'}
-            </Text>
-          </TouchableOpacity>
-          {reorderMode && (
-            <Text style={{ fontSize: 12, color: theme.colors.textTertiary }}>
-              Segure e arraste para mover
-            </Text>
-          )}
-        </View>
-      )}
-
-      {/* Lista arrastável (substitui as pendentes da FlatList enquanto ativo) */}
+      {/* Pendentes arrastáveis (substituem essas linhas na FlatList). O arraste é
+          sempre disponível via long-press — sem botão "Reordenar". */}
       {showReorder && (
         <DraggableTaskList
           data={pendingTasks}
           keyExtractor={(t) => t.id}
           itemHeight={REORDER_ROW_HEIGHT}
           onReorder={handleReorder}
-          renderItem={(item) => (
-            <View style={{ height: REORDER_ROW_HEIGHT, justifyContent: 'center' }}>
-              <TaskItem
+          containerTopY={containerTopY}
+          viewportHeight={viewport}
+          onAutoScroll={handleAutoScroll}
+          renderItem={(item, isActive) => (
+            <View
+              style={[
+                styles.dragRow,
+                { height: REORDER_ROW_HEIGHT },
+                isActive && {
+                  backgroundColor: theme.colors.surfaceElevated,
+                  borderRadius: Radius.lg,
+                },
+              ]}
+            >
+              <TaskItemSwipeable
                 task={item}
+                isLast={pendingTasks[pendingTasks.length - 1]?.id === item.id}
                 onToggle={() => {
                   const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
                   toggleStatus.mutate({ id: item.id, status: newStatus });
                 }}
                 onPress={() => router.push(`/task/${item.id}` as never)}
                 onFavorite={() => toggleFav.mutate({ id: item.id, isFavorite: !item.isFavorite })}
+                onDelete={() => handleDelete(item.id, item.title)}
               />
             </View>
           )}
@@ -422,17 +466,26 @@ export default function TasksScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <FlatList
+        ref={listRef}
+        onLayout={handleListLayout}
+        onScroll={(e) => { scrollOffset.current = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}
         data={rows}
         keyExtractor={(row) => (row.kind === 'completed-header' ? COMPLETED_HEADER_KEY : row.task.id)}
         ListHeaderComponent={ListHeader}
-        renderItem={({ item: row }) => {
+        renderItem={({ item: row, index }) => {
           if (row.kind === 'completed-header') {
             return <CompletedSectionHeader count={row.count} expanded={showCompleted} onToggle={toggleShowCompleted} />;
           }
           const item = row.task;
+          // Sem separador no último item nem na última tarefa antes do cabeçalho
+          // "Concluídas".
+          const next = rows[index + 1];
+          const isLast = !next || next.kind === 'completed-header';
           return (
             <TaskItemSwipeable
               task={item}
+              isLast={isLast}
               onToggle={() => {
                 const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
                 toggleStatus.mutate({ id: item.id, status: newStatus });
@@ -552,9 +605,8 @@ const styles = StyleSheet.create({
   actionTab: { borderStyle: 'dashed' },
   editIcon: { fontSize: 13 },
 
-  // Reorder
-  reorderBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], paddingHorizontal: Spacing[4], paddingBottom: Spacing[2] },
-  reorderToggle: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9999, borderWidth: 1 },
+  // Reorder (arraste)
+  dragRow: { justifyContent: 'center' },
 
   // Task list
   list: { paddingBottom: 96 },

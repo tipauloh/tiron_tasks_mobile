@@ -145,3 +145,29 @@ export function useToggleFavorite() {
     },
   });
 }
+
+export function useAddReminder() {
+  const qc = useQueryClient();
+  return useMutation({
+    // taskId aqui é o id da tarefa; remindAt = 'YYYY-MM-DDTHH:MM:SS'
+    mutationFn: ({ taskId, remindAt }: { taskId: number; remindAt: string }) =>
+      taskApi.addReminder(taskId, remindAt),
+    onSuccess: (_res, { taskId }) => {
+      qc.invalidateQueries({ queryKey: TASK_QUERY_KEY(String(taskId)) });
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
+
+export function useDeleteReminder() {
+  const qc = useQueryClient();
+  return useMutation({
+    // taskId é opcional, usado só para invalidar o detail correto
+    mutationFn: ({ reminderId }: { reminderId: number; taskId?: number }) =>
+      taskApi.deleteReminder(reminderId),
+    onSuccess: (_res, { taskId }) => {
+      if (taskId != null) qc.invalidateQueries({ queryKey: TASK_QUERY_KEY(String(taskId)) });
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}

@@ -7,6 +7,10 @@ import { AppState, AppStateStatus, useColorScheme } from 'react-native';
 import { useAuthStore } from '@/store/auth-store';
 import { checkAndApplyUpdate } from '@/lib/updates';
 import { queryClient } from '@/lib/query-client';
+import { configureNotificationHandler } from '@/lib/notifications';
+
+// Configura o handler de notificações o quanto antes (mostra banner em foreground).
+configureNotificationHandler();
 
 function AuthGuard() {
   const { isAuthenticated, isLoading, restoreSession } = useAuthStore();
