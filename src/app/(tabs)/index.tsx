@@ -20,7 +20,9 @@ import ReorderableList, {
   useReorderableDrag,
   type ReorderableListReorderEvent,
 } from 'react-native-reorderable-list';
+import { useQueryClient } from '@tanstack/react-query';
 import { useFilterStore } from '@/store/filter-store';
+import { microsoft365Service } from '@/modules/microsoft365/services';
 import { useTheme } from '@/hooks/use-theme';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskItem } from '@/components/tasks/TaskItem';
@@ -201,6 +203,7 @@ export default function TasksScreen() {
   const toggleFav = useToggleFavorite();
   const createTask = useCreateTask();
   const reorderTasks = useReorderTasks();
+  const qc = useQueryClient();
 
   const [quickTitle, setQuickTitle] = useState('');
 
@@ -299,11 +302,37 @@ export default function TasksScreen() {
   // contorno tracejado), sem a antiga listra fina. Mostra onde o item vai cair.
   const renderDropIndicator = useCallback(() => <View style={styles.dropIndicator} />, []);
 
+  // Lista de sistema "E-mail Sinalizados" (Microsoft 365), se existir.
+  const emailList = useMemo(() => taskLists.find((l) => l.is_system), [taskLists]);
+  const isEmailListActive = !!emailList && activeListId === String(emailList.id);
+
+  // Ressincroniza o Microsoft 365 e atualiza tarefas/listas. Best-effort
+  // (sem conta conectada ou falha de rede → silencioso; o sync re-tenta).
+  const syncEmailList = useCallback(async () => {
+    try {
+      await microsoft365Service.syncNow();
+    } catch {
+      // silencioso
+    }
+    qc.invalidateQueries({ queryKey: ['tasks'] });
+    qc.invalidateQueries({ queryKey: ['task-lists'] });
+  }, [qc]);
+
   const handleRefresh = () => {
     allQuery.refetch();
     myDayQuery.refetch();
     refetchDashboard();
+    // Puxar-para-atualizar na lista de e-mail também ressincroniza o Microsoft 365.
+    if (isEmailListActive) void syncEmailList();
   };
+
+  // Enquanto a lista de e-mail está aberta (selecionada), ressincroniza a cada 10s.
+  useEffect(() => {
+    if (!isEmailListActive) return;
+    void syncEmailList();
+    const interval = setInterval(() => void syncEmailList(), 10_000);
+    return () => clearInterval(interval);
+  }, [isEmailListActive, syncEmailList]);
 
   const handleDelete = useCallback((id: string, title: string) => {
     Alert.alert('Excluir tarefa', `"${title}" será removida permanentemente.`, [

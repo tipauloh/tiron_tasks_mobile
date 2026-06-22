@@ -14,6 +14,7 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 - Microsoft 365: sync resiliente e mensagem de erro real (diagnóstico). [FIX-UX-001]
 
 ### Added
+- Lista "E-mail Sinalizados": puxar-para-atualizar ressincroniza o Microsoft 365; e atualiza sozinha a cada 10s enquanto aberta. [FEAT-EMAIL-TASK Etapa B]
 - Tarefas de e-mail: bandeirinha 🚩 no título + bloco do e-mail (remetente/assunto/prévia) na tela da tarefa; descrição padrão editável. [FEAT-EMAIL-TASK Etapa A]
 - Concluir uma tarefa vinculada a e-mail marca o e-mail como concluído no Outlook (reabrir reverte). Requer reconectar a conta (Mail.ReadWrite). [FEAT-EMAIL-TASK Fase 3]
 - E-mails sinalizados do Microsoft 365 viram tarefas na lista "E-mail Sinalizados" (sincronização automática, idempotente). [FEAT-EMAIL-TASK Fase 1-2]

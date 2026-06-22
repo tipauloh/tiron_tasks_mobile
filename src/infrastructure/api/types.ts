@@ -176,6 +176,8 @@ export interface ApiTaskListFull {
   // Compartilhamento — o backend passou a retornar estes campos.
   role?: TaskListRole;
   shared?: boolean;
+  // Lista de sistema (ex.: "E-mail Sinalizados") — não deletável/renomeável.
+  is_system?: boolean;
 }
 
 export interface ApiTaskListMember {

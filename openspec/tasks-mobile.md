@@ -196,3 +196,6 @@ Drag: panActivateAfterLongPress (mesmo toque) + highlight por cor no item (cellA
 
 ### FEAT-EMAIL-TASK Etapa A ✅ (2026-06-22)
 Backend (VPS): colunas email_* + sync grava + descrição 'Conforme e-mail abaixo' + TaskDetail.email. Mobile (OTA): bandeirinha 🚩 no título + bloco do e-mail na tela de detalhe.
+
+### FEAT-EMAIL-TASK Etapa B ✅ (2026-06-22)
+Resync M365 no pull-to-refresh da lista de e-mail + polling 10s enquanto selecionada (index.tsx, via is_system).
