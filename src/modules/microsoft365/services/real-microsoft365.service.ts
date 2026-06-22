@@ -136,25 +136,24 @@ export class RealMicrosoft365Service implements Microsoft365Service {
       microsoft365ItemRepository.upsertItems(emailItems);
 
       // Espelha os e-mails como tarefas no backend (lista "E-mail Sinalizados").
-      // É idempotente; uma falha aqui não invalida o sync local (o cache de
-      // e-mails já foi salvo e o próximo sync re-tenta).
-      if (emailItems.length > 0) {
-        try {
-          await taskApi.emailSync(
-            emailItems.map((it) => ({
-              external_id: it.externalId,
-              title: it.title,
-              preview: it.emailPreview ?? it.summary,
-              email_from: it.emailFrom,
-              received_at: it.emailReceivedAt,
-              web_link: it.webLink,
-            })),
-          );
-        } catch (err) {
-          ms365Logger.warn('microsoft_sync', 'espelhamento e-mail->tarefa falhou', {
-            error: err instanceof Error ? err.name : 'unknown',
-          });
-        }
+      // Chamado SEMPRE (mesmo com lista vazia) para que o backend reconcilie:
+      // e-mails que deixaram de estar sinalizados concluem a tarefa vinculada.
+      // É idempotente; uma falha aqui não invalida o sync local.
+      try {
+        await taskApi.emailSync(
+          emailItems.map((it) => ({
+            external_id: it.externalId,
+            title: it.title,
+            preview: it.emailPreview ?? it.summary,
+            email_from: it.emailFrom,
+            received_at: it.emailReceivedAt,
+            web_link: it.webLink,
+          })),
+        );
+      } catch (err) {
+        ms365Logger.warn('microsoft_sync', 'espelhamento e-mail->tarefa falhou', {
+          error: err instanceof Error ? err.name : 'unknown',
+        });
       }
 
       microsoftAccountRepository.setLastSyncAt(account.id, now);

@@ -176,3 +176,6 @@ Adicionado punho ⠿ dedicado à direita de cada tarefa pendente arrastável, FO
 
 ### FEAT-EMAIL-TASK Etapa B — Resync no refresh + polling 10s (2026-06-22)
 No dashboard (index.tsx): identifica a lista de sistema via `is_system` (ApiTaskListFull.is_system, backend já retornava). Pull-to-refresh na lista de e-mail dispara `microsoft365Service.syncNow()` + invalida tasks/task-lists. Enquanto a lista de e-mail está selecionada, `useEffect` roda um sync a cada 10s (clearInterval ao sair). Best-effort (sem conta/erro = silencioso; guard this.syncing evita concorrência).
+
+### FEAT-EMAIL-TASK — Reconciliação Outlook→app (desmarcar flag conclui tarefa) (2026-06-22)
+Espelho do fluxo: retirar o sinalizador do e-mail no Outlook conclui a tarefa no app. Backend `sync_emails(reconcile=True)`: tarefas vinculadas (provider microsoft, não concluídas) cujo external_email_id NÃO está na lista de sinalizados recebida → status='completed'. Guarda `updated_at < NOW()-60s` evita corrida com reabertura recente (que re-sinaliza). `EmailSyncRequest.reconcile`. Mobile: `syncNow` passou a chamar `taskApi.emailSync` SEMPRE (mesmo lista vazia) — senão ao desmarcar o último e-mail nada reconciliaria.
