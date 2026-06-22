@@ -185,3 +185,6 @@ Refatoração do módulo M365 single->multi-conta (lista de e-mail ÚNICA; cada 
 
 ### FIX — Multi-conta M365: chave do Secure Store inválida (':') (2026-06-22)
 As chaves do expo-secure-store só aceitam `[A-Za-z0-9._-]`; o separador `:` (ms365_access_token:<id>) era INVÁLIDO e fazia TODA operação de Secure Store lançar (connect/sync/write/disconnect) — o usuário notou ao desconectar. Corrigido: separador `_` + `safeAccountId()` (sanitiza o id). Também limpa contas LEGADAS do single-account na migração (db.ts: `DELETE FROM ms365_account_meta WHERE id <> microsoft_user_id`) — id antigo era UUID local com tokens em chave fixa, viraria conta-fantasma. Teste auth.test.ts atualizado p/ o separador `_`.
+
+### FIX — Dashboard não listava pendentes com muitas tarefas (2026-06-22)
+O dashboard (index.tsx) busca pendentes + concluídas na MESMA query e filtra/agrupa no cliente, mas usava o limit padrão (20). Com 42 tarefas (19 pend + 23 concl de e-mail), as concluídas enchiam a 1ª página e as pendentes "sumiam". Fix: `DASHBOARD_LIMIT=500` no allQuery/focusQuery. (Contexto: as 23 conclusões eram e-mails distintos desmarcados no Outlook — reconciliação correta. Paginação real do dashboard fica p/ evolução futura.)

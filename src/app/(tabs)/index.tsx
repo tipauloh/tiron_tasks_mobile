@@ -226,16 +226,21 @@ export default function TasksScreen() {
     setQuickTitle('');
   }, [quickTitle, activeListIntId, createTask]);
 
+  // limit alto: o dashboard mostra pendentes + concluídas (recolhível) na MESMA
+  // lista e filtra/agrupa no cliente, então precisa trazer todas de uma vez —
+  // senão tarefas concluídas (muitas, ex.: de e-mail) enchem a página e as
+  // pendentes "somem". (Paginação real fica para uma evolução futura.)
+  const DASHBOARD_LIMIT = 500;
   const allQuery = useTasks(
     isSearching
-      ? { search: debouncedSearch }
-      : { task_list_id: activeListIntId }
+      ? { search: debouncedSearch, limit: DASHBOARD_LIMIT }
+      : { task_list_id: activeListIntId, limit: DASHBOARD_LIMIT }
   );
   const myDayQuery = useMyDay();
   const importantQuery = useImportantTasks();
   const upcomingQuery = useUpcomingTasks();
   // "Em Foco" = tarefas favoritadas (estrela/alvo). Só busca quando o foco está ativo.
-  const focusQuery = useTasks({ is_favorite: true });
+  const focusQuery = useTasks({ is_favorite: true, limit: DASHBOARD_LIMIT });
 
   const isLoading = allQuery.isLoading || myDayQuery.isLoading;
 
