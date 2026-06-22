@@ -35,6 +35,11 @@ import type { ApiTaskSummary, ApiTaskListFull } from '@/infrastructure/api/types
 
 type ViewMode = 'all' | 'today' | 'upcoming' | 'overdue' | 'favorites' | 'completed';
 
+// Lista virtual fixa "Em Foco": não é uma task_list real — agrupa as tarefas
+// marcadas como favoritas (estrela). Sempre aparece primeiro na barra de listas.
+const FOCUS_LIST_ID = '__focus__';
+const FOCUS_COLOR = '#7B4DFF';
+
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Bom dia';
@@ -141,8 +146,9 @@ export default function TasksScreen() {
   }, [searchQuery]);
 
   const isSearching = debouncedSearch.length >= 2;
-  const activeListIntId = activeListId ? parseInt(activeListId) : undefined;
-  const activeListName = activeListId ? taskLists.find((l) => String(l.id) === activeListId)?.name : undefined;
+  const isFocus = activeListId === FOCUS_LIST_ID;
+  const activeListIntId = activeListId && !isFocus ? parseInt(activeListId) : undefined;
+  const activeListName = activeListIntId ? taskLists.find((l) => String(l.id) === activeListId)?.name : undefined;
 
   const handleQuickAdd = useCallback(() => {
     const title = quickTitle.trim();
@@ -165,6 +171,7 @@ export default function TasksScreen() {
 
   const apiTasks = useMemo(() => {
     if (isSearching) return allQuery.data?.data ?? [];
+    if (isFocus) return importantQuery.data ?? [];
     const todayStr = new Date().toISOString().split('T')[0];
     const vm = viewMode as ViewMode;
     switch (vm) {
@@ -179,7 +186,7 @@ export default function TasksScreen() {
         return (allQuery.data?.data ?? []).filter((t) => t.status === 'completed');
       default: return allQuery.data?.data ?? [];
     }
-  }, [isSearching, debouncedSearch, viewMode, allQuery.data, myDayQuery.data, importantQuery.data, upcomingQuery.data]);
+  }, [isSearching, debouncedSearch, isFocus, viewMode, allQuery.data, myDayQuery.data, importantQuery.data, upcomingQuery.data]);
 
   const tasks = apiTasks.map(apiTaskToLegacy);
 
@@ -232,10 +239,13 @@ export default function TasksScreen() {
       {/* Greeting + Search */}
       <View style={[styles.headerRow, { paddingHorizontal: Spacing[4], paddingTop: Spacing[3], paddingBottom: Spacing[2] }]}>
         <View style={styles.greetingBlock}>
-          <Text style={[styles.greetingText, { color: theme.colors.text }]}>
-            {getGreeting()}{firstName ? `, ${firstName}` : ''} 👋
-          </Text>
-          <Text style={[styles.greetingSubtitle, { color: theme.colors.textSecondary }]}>
+          <View style={styles.greetingRow}>
+            <Text style={[styles.greetingText, { color: theme.colors.text, flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">
+              {getGreeting()}{firstName ? `, ${firstName}` : ''}
+            </Text>
+            <Text style={[styles.greetingText, { color: theme.colors.text }]}> 👋</Text>
+          </View>
+          <Text style={[styles.greetingSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>
             {counters.due_today > 0
               ? `${counters.due_today} tarefa${counters.due_today !== 1 ? 's' : ''} para hoje`
               : 'Sem tarefas para hoje'}
@@ -257,14 +267,23 @@ export default function TasksScreen() {
 
       {/* Stat cards — full width, clickable */}
       <View style={styles.statsRow}>
-        <StatCard label="Hoje" count={counters.due_today} color={Colors.primary} isActive={vm === 'today'} onPress={() => setViewMode('today')} />
-        <StatCard label="Atrasadas" count={counters.overdue} color={Colors.danger} isActive={vm === 'overdue'} onPress={() => setViewMode('overdue')} />
-        <StatCard label="Pendentes" count={counters.pending} color={Colors.warning} isActive={vm === 'all'} onPress={() => setViewMode('all')} />
-        <StatCard label="Concluídas" count={counters.completed} color={Colors.success} isActive={vm === 'completed'} onPress={() => setViewMode('completed')} />
+        <StatCard label="Hoje" count={counters.due_today} color={Colors.primary} isActive={!isFocus && vm === 'today'} onPress={() => { setActiveListId(null); setViewMode('today'); }} />
+        <StatCard label="Atrasadas" count={counters.overdue} color={Colors.danger} isActive={!isFocus && vm === 'overdue'} onPress={() => { setActiveListId(null); setViewMode('overdue'); }} />
+        <StatCard label="Pendentes" count={counters.pending} color={Colors.warning} isActive={!isFocus && vm === 'all'} onPress={() => { setActiveListId(null); setViewMode('all'); }} />
+        <StatCard label="Concluídas" count={counters.completed} color={Colors.success} isActive={!isFocus && vm === 'completed'} onPress={() => { setActiveListId(null); setViewMode('completed'); }} />
       </View>
 
       {/* List tabs */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.listTabsScroll} contentContainerStyle={styles.listTabsContent}>
+        {/* Lista fixa especial "Em Foco" (tarefas favoritadas) — sempre primeiro */}
+        <Pressable
+          style={[styles.listTab, styles.focusTab, { backgroundColor: isFocus ? FOCUS_COLOR : theme.colors.surface, borderColor: isFocus ? FOCUS_COLOR : FOCUS_COLOR + '55' }]}
+          onPress={() => { setActiveListId(FOCUS_LIST_ID); setViewMode('all'); }}
+        >
+          <Text style={styles.listTabIcon}>🎯</Text>
+          <Text style={[styles.listTabText, { color: isFocus ? '#FFFFFF' : FOCUS_COLOR, fontWeight: '600' }]}>Em Foco</Text>
+        </Pressable>
+
         {taskLists.length > 0 && (
           <Pressable
             style={[styles.listTab, { backgroundColor: activeListId === null ? theme.colors.primary : theme.colors.surface, borderColor: activeListId === null ? theme.colors.primary : theme.colors.border }]}
@@ -408,6 +427,7 @@ const styles = StyleSheet.create({
   // Header
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
   greetingBlock: { flex: 1 },
+  greetingRow: { flexDirection: 'row', alignItems: 'center' },
   greetingText: { fontSize: 18, fontWeight: '700', lineHeight: 24 },
   greetingSubtitle: { fontSize: 13, marginTop: 2 },
   searchBox: {
@@ -446,6 +466,7 @@ const styles = StyleSheet.create({
   listTabsScroll: { flexGrow: 0 },
   listTabsContent: { paddingHorizontal: Spacing[4], paddingVertical: 10, gap: 8, flexDirection: 'row' },
   listTab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 9999, borderWidth: 1, gap: 4 },
+  focusTab: { borderWidth: 1.5 },
   listTabIcon: { fontSize: 13 },
   listTabText: { fontSize: 13, fontWeight: '500' },
   actionTab: { borderStyle: 'dashed' },
