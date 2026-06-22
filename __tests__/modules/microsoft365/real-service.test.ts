@@ -30,13 +30,17 @@ jest.mock('../../../src/modules/microsoft365/auth', () => {
 // graph mockado
 jest.mock('../../../src/modules/microsoft365/graph', () => ({
   fetchFlaggedEmails: jest.fn(),
-  fetchTodoListsAndTasks: jest.fn(),
   me: jest.fn(async () => ({
     id: 'ms-user-1',
     displayName: 'Pessoa',
     mail: 'pessoa@outlook.com',
     userPrincipalName: 'pessoa@outlook.com',
   })),
+}));
+
+// backend (espelhamento e-mail -> tarefa) mockado
+jest.mock('@/infrastructure/api/task-api', () => ({
+  taskApi: { emailSync: jest.fn(async () => ({ data: { created: 1, list_id: 1 } })) },
 }));
 
 // repositórios em memória
@@ -90,16 +94,10 @@ const GRAPH_MESSAGES = [
     flag: { flagStatus: 'flagged' },
   },
 ];
-const GRAPH_TASKS = [
-  { id: 't1', title: 'Tarefa 1', status: 'notStarted', importance: 'high' },
-  { id: 't2', title: 'Tarefa 2', status: 'completed', importance: 'normal' },
-];
-
 beforeEach(() => {
   jest.clearAllMocks();
   holder.account = null;
   (graph.fetchFlaggedEmails as any).mockResolvedValue(GRAPH_MESSAGES);
-  (graph.fetchTodoListsAndTasks as any).mockResolvedValue(GRAPH_TASKS);
 });
 
 describe('RealMicrosoft365Service.connect', () => {
@@ -119,7 +117,7 @@ describe('RealMicrosoft365Service.connect', () => {
 });
 
 describe('RealMicrosoft365Service.syncNow', () => {
-  it('mapeia emails+tasks, faz upsert e atualiza lastSync', async () => {
+  it('mapeia emails (só EMAIL), faz upsert e atualiza lastSync', async () => {
     holder.account = { id: 'acc-1', lastSyncAt: null };
     const service = new RealMicrosoft365Service();
 
@@ -127,14 +125,24 @@ describe('RealMicrosoft365Service.syncNow', () => {
 
     expect(result.status).toBe('success');
     expect(result.emailCount).toBe(1);
-    expect(result.taskCount).toBe(2);
+    expect(result.taskCount).toBe(0);
     expect(itemRepo.upsertItems).toHaveBeenCalledTimes(1);
 
     const upserted = itemRepo.upsertItems.mock.calls[0][0] as any[];
-    const types = new Set(upserted.map((i) => i.sourceType));
-    expect(types.has('EMAIL')).toBe(true);
-    expect(types.has('TODO_TASK')).toBe(true);
+    expect(upserted.every((i) => i.sourceType === 'EMAIL')).toBe(true);
     expect(accountRepo.setLastSyncAt).toHaveBeenCalledWith('acc-1', expect.any(Number));
+  });
+
+  it('espelha os emails como tarefas no backend (email-sync)', async () => {
+    holder.account = { id: 'acc-1', lastSyncAt: null };
+    const { taskApi } = require('@/infrastructure/api/task-api');
+    const service = new RealMicrosoft365Service();
+
+    await service.syncNow();
+
+    expect(taskApi.emailSync).toHaveBeenCalledTimes(1);
+    const sent = taskApi.emailSync.mock.calls[0][0] as any[];
+    expect(sent[0].external_id).toBe('m1');
   });
 
   it('retorna erro quando não há conta', async () => {
@@ -155,13 +163,14 @@ describe('RealMicrosoft365Service.syncNow', () => {
     expect(result.error).toMatch(/reconecte/i);
   });
 
-  it('trata erro genérico do Graph com mensagem neutra', async () => {
+  it('trata erro genérico do Graph com mensagem neutra (sem vazar conteúdo)', async () => {
     holder.account = { id: 'acc-1', lastSyncAt: null };
-    (graph.fetchTodoListsAndTasks as any).mockRejectedValueOnce(new Error('boom'));
+    (graph.fetchFlaggedEmails as any).mockRejectedValueOnce(new Error('boom'));
     const service = new RealMicrosoft365Service();
     const result = await service.syncNow();
     expect(result.status).toBe('error');
-    expect(result.error).toBe('Falha ao sincronizar.');
+    expect(result.error).toBeTruthy();
+    expect(result.error).not.toContain('boom');
   });
 });
 

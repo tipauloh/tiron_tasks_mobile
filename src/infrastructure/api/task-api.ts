@@ -1,6 +1,8 @@
 import { apiClient } from './client';
 import type {
   ApiDashboard,
+  ApiEmailSyncItem,
+  ApiEmailSyncResult,
   ApiReminder,
   ApiTaskCreateRequest,
   ApiTaskDetail,
@@ -78,6 +80,11 @@ export const taskApi = {
 
   reorder(items: ApiTaskReorderItem[]): Promise<MessageResponse> {
     return apiClient.patch(`${BASE}/reorder`, { items });
+  },
+
+  // Espelha e-mails sinalizados do Microsoft 365 como tarefas (idempotente).
+  emailSync(items: ApiEmailSyncItem[]): Promise<SingleResponse<ApiEmailSyncResult>> {
+    return apiClient.post(`${BASE}/email-sync`, { items });
   },
 
   dashboard(): Promise<SingleResponse<ApiDashboard>> {

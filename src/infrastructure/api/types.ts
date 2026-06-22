@@ -88,8 +88,27 @@ export interface ApiTaskSummary {
   checklist_count: number;
   checklist_done: number;
   labels: ApiLabel[];
+  // Vínculo com a fonte (e-mail sinalizado do Microsoft 365). Quando presente,
+  // concluir/reabrir a tarefa espelha o flag do e-mail (ver módulo microsoft365).
+  external_email_id: string | null;
+  external_provider: string | null; // 'microsoft'
   created_at: string | null;
   updated_at: string | null;
+}
+
+// Espelhamento de e-mails sinalizados -> tarefas (POST /tasks/email-sync).
+export interface ApiEmailSyncItem {
+  external_id: string; // id da mensagem no Microsoft Graph
+  title?: string | null;
+  preview?: string | null;
+  email_from?: string | null;
+  received_at?: string | null;
+  web_link?: string | null;
+}
+
+export interface ApiEmailSyncResult {
+  created: number;
+  list_id: number;
 }
 
 export interface ApiTaskDetail extends ApiTaskSummary {

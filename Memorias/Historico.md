@@ -136,3 +136,9 @@
 - **Microsoft 365 — escopo reduzido:** removida a sincronização de tarefas (To Do = Tarefas do Outlook; API antiga de Outlook Tasks descontinuada em 2022). Agora só **e-mails sinalizados**. Escopo `Tasks.Read` removido; UI sem contador/lista de tarefas. Decisão do usuário.
 - **Separador entre tarefas:** espessura `hairline → 1px` (mais visível, após já ter mudado a cor p/ `border`).
 - **Calendário:** número do dia subido (`paddingBottom: 6` na célula) para centralizar melhor.
+
+### FEAT-EMAIL-TASK — E-mails sinalizados viram tarefas (2026-06-22)
+Feature faseada (decisões do usuário: criação automática; concluir tarefa marca e-mail; reabrir reverte; tela M365 = só conta+sync). **Mail.ReadWrite** necessário (Fase 3).
+- **Fase 1 — BACKEND (app_api), deployada no VPS:** colunas `tasks.external_email_id`/`external_provider`, `task_lists.is_system`, índice único parcial (idempotência) — migração idempotente no startup (`main.py _MIGRATE_EMAIL_LINK`). Endpoint `POST /api/v1/tasks/email-sync` (`task_service.sync_emails` cria lista de sistema "E-mail Sinalizados" + tarefas vinculadas, sem duplicar). Lista `is_system` protegida de delete/rename. Lógica validada por script direto + verificada em produção.
+- **Fase 2 — MOBILE (OTA):** `syncNow` espelha os e-mails via `taskApi.emailSync` → `POST /tasks/email-sync`; `ApiTaskSummary` expõe o vínculo; hooks invalidam tasks/task-lists; tela M365 simplificada (e-mails aparecem como tarefas na lista). Testes atualizados (236 verdes).
+- **Fase 3 (pendente):** concluir/reabrir tarefa vinculada → `PATCH /me/messages/{id}` flag complete/flagged (simétrico). Exige `Mail.ReadWrite` + reconectar.

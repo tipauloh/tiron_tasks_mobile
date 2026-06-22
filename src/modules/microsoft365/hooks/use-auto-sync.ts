@@ -44,6 +44,9 @@ export function useMicrosoft365AutoSync(): void {
         await microsoft365Service.syncNow();
         if (!cancelled) {
           qc.invalidateQueries({ queryKey: ['ms365'] });
+          // O sync cria/atualiza tarefas na lista "E-mail Sinalizados".
+          qc.invalidateQueries({ queryKey: ['task-lists'] });
+          qc.invalidateQueries({ queryKey: ['tasks'] });
         }
       } catch (err) {
         ms365Logger.warn('microsoft_sync', 'auto-sync falhou', {

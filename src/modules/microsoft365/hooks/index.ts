@@ -31,6 +31,10 @@ export function useMicrosoft365Items(sourceType?: Microsoft365SourceType) {
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['ms365'] });
+  // O sync espelha e-mails como tarefas na lista "E-mail Sinalizados" —
+  // atualiza também as listas e tarefas do app.
+  qc.invalidateQueries({ queryKey: ['task-lists'] });
+  qc.invalidateQueries({ queryKey: ['tasks'] });
 }
 
 /** Conecta a conta (mock). */

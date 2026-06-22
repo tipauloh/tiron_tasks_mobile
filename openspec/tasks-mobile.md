@@ -184,3 +184,6 @@ Drag-drop via react-native-reorderable-list; separador `border`; TimeRangePicker
 
 ### FIX-UX-002 ✅ (2026-06-22)
 Drag via Gesture.LongPress (gesture-handler); M365 e-mails corrigido (InefficientFilter) e reduzido a só e-mails (Tasks.Read removido); separador 1px; número do dia no calendário. Arquivos: `(tabs)/index.tsx`, `(tabs)/calendar.tsx`, `TaskItem.tsx`, `modules/microsoft365/{constants,graph/mail,services/real-microsoft365.service,components/MicrosoftAccountCard,screens/MicrosoftConnectionScreen}`.
+
+### FEAT-EMAIL-TASK Fase 1-2 ✅ (2026-06-22)
+Backend (app_api, deployado VPS): colunas external_email_id/provider + is_system + endpoint POST /tasks/email-sync (lista sistema 'E-mail Sinalizados', idempotente). Mobile (OTA): syncNow espelha e-mails via taskApi.emailSync; tela M365 = só conta+sync. Fase 3 (concluir->marca e-mail) pendente: Mail.ReadWrite + reconectar.

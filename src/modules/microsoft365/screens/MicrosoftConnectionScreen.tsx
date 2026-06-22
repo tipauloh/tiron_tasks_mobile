@@ -17,7 +17,6 @@ import {
 import {
   MicrosoftAccountCard,
   MicrosoftConnectButton,
-  MicrosoftEmailItem,
 } from '../components';
 import type { SyncStatus } from '../types';
 
@@ -27,7 +26,6 @@ export function MicrosoftConnectionScreen() {
   const user = useAuthStore((s) => s.user);
 
   const connectionQuery = useMicrosoftAccount();
-  const emailsQuery = useMicrosoft365Items('EMAIL');
 
   const connectMutation = useMicrosoftConnect();
   const disconnectMutation = useMicrosoftDisconnect();
@@ -85,8 +83,6 @@ export function MicrosoftConnectionScreen() {
       ],
     );
   }
-
-  const emails = emailsQuery.data ?? [];
 
   return (
     <SafeAreaView
@@ -154,24 +150,11 @@ export function MicrosoftConnectionScreen() {
               />
             </View>
 
-            {emails.length > 0 ? (
-              <View style={styles.section}>
-                <Text variant="label" secondary style={styles.sectionTitle}>
-                  E-MAILS SINALIZADOS
-                </Text>
-                <View style={styles.list}>
-                  {emails.map((item) => (
-                    <MicrosoftEmailItem key={item.id} item={item} />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {emails.length === 0 ? (
-              <Text variant="body" secondary style={styles.empty}>
-                Nenhum e-mail sinalizado sincronizado ainda. Toque em "Sincronizar Agora".
-              </Text>
-            ) : null}
+            <Text variant="body" secondary style={styles.note}>
+              📋 Seus e-mails sinalizados aparecem como tarefas na lista{' '}
+              <Text weight="semibold">E-mail Sinalizados</Text>. Ao concluir a
+              tarefa, o e-mail é marcado como concluído no Outlook.
+            </Text>
           </View>
         )}
       </ScrollView>
