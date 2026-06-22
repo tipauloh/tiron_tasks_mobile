@@ -5,6 +5,8 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 ## [Unreleased]
 
 ### Added
+- Lista fixa "Em Foco" (🎯): agrupa tarefas favoritadas sem tirá-las das listas; sempre no topo. [FOCO-001]
+- Saudação do dashboard não quebra mais em 2 linhas com nomes grandes. [FOCO-001]
 - Login: cadastro de novo usuário e "esqueci minha senha" (código por e-mail). Backend: signup no app_api + reset no app_web. [AUTH-001]
 - Aba Tarefas: campo de adição rápida (cria tarefa só com o nome, na lista ativa ou sem lista) ao lado do botão "+". [FEAT-001m]
 - Identidade visual: novo ícone da marca (T + check) em launcher/splash/adaptive/favicon e logo na tela de login. Botões Google/Apple conforme guidelines oficiais (desabilitados até configurar OAuth). [BRAND-001]

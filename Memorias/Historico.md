@@ -88,3 +88,8 @@
 - **Fix Dockerfile app_api:** o fallback `pip install` hardcoded não tinha pyjwt/httpx → container quebrava (ModuleNotFoundError). Corrigido + rebuild.
 - **Credenciais:** 3 client IDs + secret no `.env` do VPS (fora do git). SHA-1 keystore EAS cadastrado no OAuth client Android. **Rotacionar o client secret** (vazou no chat).
 - **Build iOS+Android disparada:** Android `1c549ec7`, iOS `c1553bb2`. Validar login no device após instalar.
+
+### FOCO-001 — Lista fixa "Em Foco" + saudação harmônica (2026-06-21)
+- **Em Foco:** chip fixo `🎯 Em Foco` sempre primeiro na barra de listas do dashboard (`(tabs)/index.tsx`), cor roxa da marca. Lista VIRTUAL (não é task_list real) — `activeListId === '__focus__'` → `apiTasks` retorna `importantQuery.data` (favoritas). Reaproveita 100% o `is_favorite`/estrela: favoritar adiciona em Em Foco sem tirar da lista original. StatCards saem do foco ao clicar (filtros globais).
+- **Saudação:** nome grande não quebra mais em 2 linhas — `greetingRow` (flex row), nome com `numberOfLines={1}` + `flexShrink` + `ellipsizeMode tail`, e o 👋 num Text fixo sempre visível.
+- **Entrega:** OTA `d675d8c9-745d-4bfb-b02d-f39b5c885400` (ambos JS puro).
