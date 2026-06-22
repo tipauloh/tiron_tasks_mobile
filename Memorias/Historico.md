@@ -156,3 +156,6 @@ Feature faseada (decisões do usuário: criação automática; concluir tarefa m
 
 ### FIX-UX-003b — Reverter panActivateAfterLongPress (quebrou o drag) (2026-06-22)
 `panActivateAfterLongPress` instala um pan próprio que COMPETE com o `Swipeable` (swipe-delete) de cada item → o arraste parou de iniciar. Revertido para o gesto manual que convivia com o swipe (Gesture.LongPress minDuration 180 + useReorderableDrag no GestureDetector, restaurado ReorderableTaskCell). **Mantidos** os ganhos visuais: highlight por cor (cellAnimations backgroundColor) e slot suave no destino. Lição: nesta lib, long-press explícito > panActivateAfterLongPress quando há Swipeable na célula.
+
+### FIX-UX-003c — Arraste no MESMO toque (sem 2º clique) (2026-06-22)
+Raiz do "2º clique": o pan que move o item vive na LISTA (Gesture.Pan da lib); `drag()` só ATIVA a célula. Um `Gesture.LongPress` do gesture-handler é concorrente e CANCELA esse pan → precisa de 2º toque. Solução: padrão canônico da lib `Pressable onLongPress={drag}` (RN core) DENTRO do Swipeable (antes estava por fora → não disparava). O Pressable não cancela o pan da lib → mesmo toque já arrasta. `dragHandler` prop no TaskItemSwipeable; removido Gesture/GestureDetector. Se ainda exigir 2º toque, plano B = drag handle dedicado.

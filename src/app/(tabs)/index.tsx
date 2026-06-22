@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Swipeable, Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Swipeable } from 'react-native-gesture-handler';
 import ReorderableList, {
   reorderItems,
   useReorderableDrag,
@@ -122,13 +122,15 @@ function StatCard({
 
 // ─── TaskItemSwipeable ───────────────────────────────────────────────────────
 
-function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLast }: {
+function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLast, dragHandler }: {
   task: ReturnType<typeof apiTaskToLegacy>;
   onToggle: () => void;
   onPress: () => void;
   onFavorite: () => void;
   onDelete: () => void;
   isLast?: boolean;
+  /** Quando presente, um long-press na linha inicia o arraste (reorder). */
+  dragHandler?: () => void;
 }) {
   const swipeableRef = useRef<Swipeable>(null);
   const renderRightActions = useCallback(() => (
@@ -137,19 +139,32 @@ function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLa
     </TouchableOpacity>
   ), [onDelete]);
 
+  const content = (
+    <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} isLast={isLast} />
+  );
+
   return (
     <Swipeable ref={swipeableRef} renderRightActions={renderRightActions} rightThreshold={60} friction={2}>
-      <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} isLast={isLast} />
+      {dragHandler ? (
+        // Pressable (RN core) DENTRO do Swipeable: o onLongPress dispara o drag e,
+        // por NÃO ser um gesto do gesture-handler, não cancela o pan interno da lib
+        // — então o MESMO toque já arrasta (sem precisar de um segundo toque).
+        <Pressable onLongPress={dragHandler} delayLongPress={200}>
+          {content}
+        </Pressable>
+      ) : (
+        content
+      )}
     </Swipeable>
   );
 }
 
 // ─── ReorderableTaskCell ─────────────────────────────────────────────────────
-// Célula de tarefa PENDENTE arrastável. O long-press do gesture-handler inicia o
-// drag (via useReorderableDrag) e CONVIVE com o swipe-to-delete do Swipeable —
-// ao contrário do panActivateAfterLongPress da lib, cujo pan próprio compete com
-// o Swipeable e impede o arraste de iniciar. O destaque do item flutuante (cor +
-// escala + sombra) vem do `cellAnimations`.
+// Célula de tarefa PENDENTE arrastável. Usa o padrão canônico da lib —
+// `Pressable onLongPress={drag}` (RN core, dentro do Swipeable). O long-press só
+// ATIVA o item; quem segue o dedo é o pan interno da lib (na lista), que o
+// Pressable não cancela — por isso o MESMO toque já arrasta. (Um `Gesture.LongPress`
+// do gesture-handler, por ser concorrente, mataria esse pan e exigiria 2º toque.)
 function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: {
   task: ReturnType<typeof apiTaskToLegacy>;
   onToggle: () => void;
@@ -158,20 +173,15 @@ function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: 
   onDelete: () => void;
 }) {
   const drag = useReorderableDrag();
-  const longPress = useMemo(
-    () => Gesture.LongPress().minDuration(180).runOnJS(true).onStart(() => drag()),
-    [drag],
-  );
   return (
-    <GestureDetector gesture={longPress}>
-      <TaskItemSwipeable
-        task={task}
-        onToggle={onToggle}
-        onPress={onPress}
-        onFavorite={onFavorite}
-        onDelete={onDelete}
-      />
-    </GestureDetector>
+    <TaskItemSwipeable
+      task={task}
+      onToggle={onToggle}
+      onPress={onPress}
+      onFavorite={onFavorite}
+      onDelete={onDelete}
+      dragHandler={drag}
+    />
   );
 }
 
