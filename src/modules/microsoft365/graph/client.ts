@@ -9,6 +9,17 @@ import { getValidAccessToken, MicrosoftReauthRequiredError } from '../auth';
 import { ms365Logger } from '../utils/logger';
 import type { GraphCollection } from '../types';
 
+/** Erro do Graph com status HTTP e código (ex.: 'ErrorAccessDenied'). Não-sensível. */
+export class GraphError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly graphCode: string | null,
+  ) {
+    super(`Graph HTTP ${status}${graphCode ? ` (${graphCode})` : ''}`);
+    this.name = 'GraphError';
+  }
+}
+
 /** Máximo de retentativas por throttling (429/503) antes de desistir. */
 const MAX_RETRIES = 3;
 /** Backoff base quando o Retry-After não vem no header (ms). */
@@ -86,11 +97,20 @@ export async function graphGet<T = unknown>(path: string): Promise<T> {
       throw new MicrosoftReauthRequiredError();
     }
 
+    // Extrai o código de erro do Graph (ex.: 'ErrorAccessDenied') — não-sensível.
+    let graphCode: string | null = null;
+    try {
+      const body = (await res.json()) as { error?: { code?: string } };
+      graphCode = body?.error?.code ?? null;
+    } catch {
+      // corpo não-JSON; ignora
+    }
     ms365Logger.error('microsoft_graph', 'erro na chamada ao Graph', {
       status: res.status,
+      graphCode,
       endpoint: redactUrl(url),
     });
-    throw new Error(`Graph GET falhou: HTTP ${res.status}`);
+    throw new GraphError(res.status, graphCode);
   }
 
   throw new Error('Graph GET falhou após retries de throttling.');

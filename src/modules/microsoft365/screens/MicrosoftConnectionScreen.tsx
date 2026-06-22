@@ -55,6 +55,16 @@ export function MicrosoftConnectionScreen() {
 
   function handleSync() {
     syncMutation.mutate(undefined, {
+      // syncNow não lança: retorna SyncResult com `error` quando algo falha
+      // (inclui o código real do Graph p/ diagnóstico, ex.: HTTP 403).
+      onSuccess: (result) => {
+        if (result?.error) {
+          Alert.alert(
+            result.status === 'error' ? 'Falha ao sincronizar' : 'Sincronizado parcialmente',
+            result.error,
+          );
+        }
+      },
       onError: () => Alert.alert('Erro', 'Falha ao sincronizar. Tente novamente.'),
     });
   }

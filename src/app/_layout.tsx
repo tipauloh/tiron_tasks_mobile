@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AppState, AppStateStatus, useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '@/store/auth-store';
 import { checkAndApplyUpdate } from '@/lib/updates';
 import { queryClient } from '@/lib/query-client';
@@ -73,10 +74,11 @@ export default function RootLayout() {
   const isDark = scheme === 'dark';
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <AuthGuard />
-      <Stack screenOptions={{ headerShown: false }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <AuthGuard />
+        <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
@@ -111,7 +113,8 @@ export default function RootLayout() {
           name="microsoft365"
           options={{ presentation: 'card', animation: 'slide_from_right' }}
         />
-      </Stack>
-    </QueryClientProvider>
+        </Stack>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

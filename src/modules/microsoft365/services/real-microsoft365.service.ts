@@ -11,6 +11,7 @@ import {
 } from '../repositories';
 import { mapGraphMessageToItem, mapGraphTodoTaskToItem } from '../models/mappers';
 import { fetchFlaggedEmails, fetchTodoListsAndTasks, me } from '../graph';
+import { GraphError } from '../graph/client';
 import {
   signIn,
   signOut,
@@ -128,32 +129,43 @@ export class RealMicrosoft365Service implements Microsoft365Service {
       // Garante que há token válido antes de bater no Graph (refresh se preciso).
       await getValidAccessToken();
 
-      const [messages, tasks] = await Promise.all([
+      // E-mails e tarefas são independentes: uma API falhar NÃO derruba a outra.
+      const [mailRes, todoRes] = await Promise.allSettled([
         fetchFlaggedEmails(),
         fetchTodoListsAndTasks(),
       ]);
 
+      const messages = mailRes.status === 'fulfilled' ? mailRes.value : [];
+      const tasks = todoRes.status === 'fulfilled' ? todoRes.value : [];
+
       const emailItems: Microsoft365Item[] = messages.map((m) => mapGraphMessageToItem(m, now));
       const taskItems: Microsoft365Item[] = tasks.map((t) => mapGraphTodoTaskToItem(t, now));
-
       microsoft365ItemRepository.upsertItems([...emailItems, ...taskItems]);
-      microsoftAccountRepository.setLastSyncAt(account.id, now);
 
-      ms365Logger.info('microsoft_sync', 'sync concluído', {
+      const errors: string[] = [];
+      if (mailRes.status === 'rejected') errors.push(`E-mails: ${describeSyncError(mailRes.reason)}`);
+      if (todoRes.status === 'rejected') errors.push(`Tarefas: ${describeSyncError(todoRes.reason)}`);
+      const bothFailed = mailRes.status === 'rejected' && todoRes.status === 'rejected';
+
+      // Marca sincronizado se pelo menos uma fonte funcionou.
+      if (!bothFailed) microsoftAccountRepository.setLastSyncAt(account.id, now);
+
+      ms365Logger.info('microsoft_sync', 'sync finalizado', {
         emailCount: emailItems.length,
         taskCount: taskItems.length,
+        errors: errors.length,
       });
 
       return {
-        status: 'success',
+        status: bothFailed ? 'error' : 'success',
         emailCount: emailItems.length,
         taskCount: taskItems.length,
         syncedAt: now,
+        error: errors.length ? errors.join(' · ') : undefined,
       };
     } catch (err) {
-      const isReauth = err instanceof MicrosoftReauthRequiredError;
+      // Falha antes mesmo das chamadas (ex.: token/refresh).
       ms365Logger.error('microsoft_sync', 'falha no sync', {
-        reauthRequired: isReauth,
         error: err instanceof Error ? err.name : 'unknown',
       });
       return {
@@ -161,9 +173,7 @@ export class RealMicrosoft365Service implements Microsoft365Service {
         emailCount: 0,
         taskCount: 0,
         syncedAt: Date.now(),
-        error: isReauth
-          ? 'Sessão expirada. Reconecte sua conta Microsoft.'
-          : 'Falha ao sincronizar.',
+        error: describeSyncError(err),
       };
     } finally {
       this.syncing = false;
@@ -184,6 +194,21 @@ export class RealMicrosoft365Service implements Microsoft365Service {
   async tokenExpiresAt(): Promise<number | null> {
     return getTokenExpiresAt();
   }
+}
+
+/** Mensagem amigável (e diagnóstica) para uma falha de sincronização. Não-sensível. */
+function describeSyncError(reason: unknown): string {
+  if (reason instanceof MicrosoftReauthRequiredError) {
+    return 'sessão expirada — desconecte e reconecte a conta';
+  }
+  if (reason instanceof GraphError) {
+    if (reason.status === 403) {
+      return `sem permissão (HTTP 403${reason.graphCode ? ` ${reason.graphCode}` : ''}) — adicione os escopos no App Registration e reconecte`;
+    }
+    if (reason.status === 401) return 'sessão expirada (401) — reconecte';
+    return `HTTP ${reason.status}${reason.graphCode ? ` ${reason.graphCode}` : ''}`;
+  }
+  return 'falha de rede ou inesperada';
 }
 
 export const realMicrosoft365Service = new RealMicrosoft365Service();

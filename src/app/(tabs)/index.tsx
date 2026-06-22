@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   Alert,
@@ -12,23 +11,24 @@ import {
   RefreshControl,
   Platform,
   KeyboardAvoidingView,
-  type LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useSharedValue } from 'react-native-reanimated';
+import ReorderableList, {
+  reorderItems,
+  useReorderableDrag,
+  type ReorderableListReorderEvent,
+} from 'react-native-reorderable-list';
 import { useFilterStore } from '@/store/filter-store';
 import { useTheme } from '@/hooks/use-theme';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY, type TaskRow } from '@/components/tasks/CompletedSection';
-import { Card } from '@/components/ui/Card';
 import {
   useTasks, useMyDay, useImportantTasks, useUpcomingTasks,
   useDeleteTask, useToggleTaskStatus, useToggleFavorite, useCreateTask, useReorderTasks,
 } from '@/hooks/api/use-tasks';
-import { DraggableTaskList } from '@/components/tasks/DraggableTaskList';
 import { partitionTasks } from '@/utils/group-tasks';
 import { useTaskLists, useArchiveTaskList } from '@/hooks/api/use-task-lists';
 import { useDashboard } from '@/hooks/api/use-dashboard';
@@ -44,11 +44,19 @@ type ViewMode = 'all' | 'today' | 'upcoming' | 'overdue' | 'favorites' | 'comple
 const FOCUS_LIST_ID = '__focus__';
 const FOCUS_COLOR = '#7B4DFF';
 
-// Altura fixa de cada linha arrastável (necessária para o cálculo de destino do
-// arraste). Aproxima a altura do TaskItem (2 linhas + meta + padding).
-const REORDER_ROW_HEIGHT = 72;
-// Velocidade do auto-scroll (px por frame) quando o item se aproxima das bordas.
-const AUTO_SCROLL_SPEED = 9;
+// Animação do item flutuante enquanto é arrastado (react-native-reorderable-list).
+// Leve escala + sombra elevam visualmente a linha "pega" pelo dedo. Sobrescrevemos
+// também a opacidade para 1 (o padrão da lib reduz a opacidade do item arrastado).
+const REORDER_CELL_ANIMATIONS = {
+  transform: [{ scale: 1.04 }],
+  opacity: 1,
+  shadowColor: '#000',
+  shadowOpacity: 0.18,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 8,
+  zIndex: 999,
+} as const;
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -132,6 +140,33 @@ function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLa
   );
 }
 
+// ─── ReorderableTaskCell ─────────────────────────────────────────────────────
+// Célula de tarefa PENDENTE arrastável. O arraste é iniciado por long-press em
+// qualquer ponto da linha (via `useReorderableDrag`, sem botão "Reordenar"). O
+// swipe-to-delete continua disponível porque o `Swipeable` (pan horizontal) e o
+// drag (long-press) não competem entre si. A escala/sombra do item flutuante são
+// aplicadas pelo `ReorderableList` via `cellAnimations`.
+function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: {
+  task: ReturnType<typeof apiTaskToLegacy>;
+  onToggle: () => void;
+  onPress: () => void;
+  onFavorite: () => void;
+  onDelete: () => void;
+}) {
+  const drag = useReorderableDrag();
+  return (
+    <Pressable onLongPress={drag} delayLongPress={220}>
+      <TaskItemSwipeable
+        task={task}
+        onToggle={onToggle}
+        onPress={onPress}
+        onFavorite={onFavorite}
+        onDelete={onDelete}
+      />
+    </Pressable>
+  );
+}
+
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function TasksScreen() {
@@ -153,49 +188,6 @@ export default function TasksScreen() {
   const reorderTasks = useReorderTasks();
 
   const [quickTitle, setQuickTitle] = useState('');
-
-  // ─── Auto-scroll do arraste ────────────────────────────────────────────────
-  const listRef = useRef<FlatList>(null);
-  const scrollOffset = useRef(0);
-  const viewportHeight = useRef(0);
-  const [viewport, setViewport] = useState(0);
-  // Y absoluto (na tela) do topo da janela de scroll — usado para auto-scroll.
-  const containerTopY = useSharedValue(0);
-  const autoScrollDir = useRef<-1 | 0 | 1>(0);
-  const autoScrollRaf = useRef<number | null>(null);
-
-  const stepAutoScroll = useCallback(() => {
-    const dir = autoScrollDir.current;
-    if (dir === 0) {
-      autoScrollRaf.current = null;
-      return;
-    }
-    scrollOffset.current = Math.max(0, scrollOffset.current + dir * AUTO_SCROLL_SPEED);
-    listRef.current?.scrollToOffset({ offset: scrollOffset.current, animated: false });
-    autoScrollRaf.current = requestAnimationFrame(stepAutoScroll);
-  }, []);
-
-  const handleAutoScroll = useCallback((dir: -1 | 0 | 1) => {
-    autoScrollDir.current = dir;
-    if (dir !== 0 && autoScrollRaf.current == null) {
-      autoScrollRaf.current = requestAnimationFrame(stepAutoScroll);
-    }
-  }, [stepAutoScroll]);
-
-  useEffect(() => () => {
-    if (autoScrollRaf.current != null) cancelAnimationFrame(autoScrollRaf.current);
-  }, []);
-
-  const handleListLayout = useCallback((e: LayoutChangeEvent) => {
-    viewportHeight.current = e.nativeEvent.layout.height;
-    setViewport(e.nativeEvent.layout.height);
-    // mede a posição absoluta na tela (topo do viewport) p/ o cálculo das bordas
-    // do auto-scroll. FlatList encaminha measureInWindow ao ScrollView nativo.
-    const node = listRef.current as unknown as {
-      measureInWindow?: (cb: (x: number, y: number) => void) => void;
-    } | null;
-    node?.measureInWindow?.((_x, y) => { containerTopY.value = y; });
-  }, [containerTopY]);
 
   // Debounce search
   useEffect(() => {
@@ -250,38 +242,52 @@ export default function TasksScreen() {
 
   const tasks = apiTasks.map(apiTaskToLegacy);
 
-  // Reordenar (arraste sempre ativo) só faz sentido em listas estáveis: "Todas"
-  // (sem filtro) ou uma lista específica — não em buscas nem em visões derivadas
-  // (hoje/atrasadas/em foco/etc.).
+  // Reordenar (arraste por long-press, sempre ativo) só faz sentido em listas
+  // estáveis: "Todas" (sem filtro) ou uma lista específica — não em buscas nem em
+  // visões derivadas (hoje/atrasadas/em foco/concluídas).
   const canReorder = !isSearching && !isFocus && (viewMode as ViewMode) === 'all';
   const pendingTasks = useMemo(() => partitionTasks(tasks).pending, [tasks]);
-  // Quando elegível e há mais de uma pendente, as pendentes viram lista arrastável.
+  // Habilita o arraste quando elegível e há mais de uma pendente para reordenar.
   const showReorder = canReorder && pendingTasks.length > 1;
 
-  const handleReorder = useCallback(
-    (ordered: typeof pendingTasks) => {
-      reorderTasks.mutate(
-        ordered.map((t, index) => ({ id: parseInt(t.id), position: index })),
-      );
-    },
-    [reorderTasks],
-  );
-
   // No modo "Concluídas" a lista já é só de concluídas — mantém plana. Nos demais,
-  // agrupa concluídas numa seção recolhível abaixo das pendentes.
+  // agrupa concluídas numa seção recolhível abaixo das pendentes. As pendentes
+  // ficam SEMPRE no topo da lista (índices 0..pendingCount-1), o que torna seguro
+  // mapear o índice de arraste de volta para a ordem das pendentes.
   const rows = useMemo<TaskRow<(typeof tasks)[number]>[]>(() => {
     if (!isSearching && (viewMode as ViewMode) === 'completed') {
       return tasks.map((task) => ({ kind: 'task', task }));
     }
-    const built = buildTaskRows(tasks, showCompleted);
-    // Quando o arraste está ativo, as pendentes são renderizadas pelo
-    // DraggableTaskList (no header) — então removemos as linhas de tarefa pendente
-    // da FlatList, mantendo apenas o cabeçalho/itens de "Concluídas".
-    if (showReorder) {
-      return built.filter((r) => r.kind !== 'task' || r.task.status === 'completed');
-    }
-    return built;
-  }, [tasks, showCompleted, isSearching, viewMode, showReorder]);
+    return buildTaskRows(tasks, showCompleted);
+  }, [tasks, showCompleted, isSearching, viewMode]);
+
+  // Quantidade de linhas de tarefa pendente no topo de `rows`. O drag só pode
+  // soltar dentro dessa faixa; cabeçalho "Concluídas" e itens concluídos ficam fora.
+  const pendingCount = pendingTasks.length;
+
+  const handleReorder = useCallback(
+    ({ from, to }: ReorderableListReorderEvent) => {
+      // Limita o destino à faixa de pendentes (não deixa cair sobre concluídas).
+      const clampedTo = Math.min(Math.max(to, 0), pendingCount - 1);
+      if (from === clampedTo) return;
+      const reordered = reorderItems(pendingTasks, from, clampedTo);
+      reorderTasks.mutate(
+        reordered.map((t, index) => ({ id: parseInt(t.id), position: index })),
+      );
+    },
+    [pendingTasks, pendingCount, reorderTasks],
+  );
+
+  // Realce de destino durante o arraste: um "slot" destacado (fundo suave + linha
+  // grossa na cor primária) mostrando exatamente onde o item vai cair.
+  const renderDropIndicator = useCallback(
+    () => (
+      <View style={[styles.dropIndicator, { backgroundColor: Colors.primary + '14' }]}>
+        <View style={[styles.dropIndicatorBar, { backgroundColor: Colors.primary }]} />
+      </View>
+    ),
+    [],
+  );
 
   const handleRefresh = () => {
     allQuery.refetch();
@@ -422,57 +428,24 @@ export default function TasksScreen() {
           </Text>
         </View>
       )}
-
-      {/* Pendentes arrastáveis (substituem essas linhas na FlatList). O arraste é
-          sempre disponível via long-press — sem botão "Reordenar". */}
-      {showReorder && (
-        <DraggableTaskList
-          data={pendingTasks}
-          keyExtractor={(t) => t.id}
-          itemHeight={REORDER_ROW_HEIGHT}
-          onReorder={handleReorder}
-          containerTopY={containerTopY}
-          viewportHeight={viewport}
-          onAutoScroll={handleAutoScroll}
-          renderItem={(item, isActive) => (
-            <View
-              style={[
-                styles.dragRow,
-                { height: REORDER_ROW_HEIGHT },
-                isActive && {
-                  backgroundColor: theme.colors.surfaceElevated,
-                  borderRadius: Radius.lg,
-                },
-              ]}
-            >
-              <TaskItemSwipeable
-                task={item}
-                isLast={pendingTasks[pendingTasks.length - 1]?.id === item.id}
-                onToggle={() => {
-                  const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
-                  toggleStatus.mutate({ id: item.id, status: newStatus });
-                }}
-                onPress={() => router.push(`/task/${item.id}` as never)}
-                onFavorite={() => toggleFav.mutate({ id: item.id, isFavorite: !item.isFavorite })}
-                onDelete={() => handleDelete(item.id, item.title)}
-              />
-            </View>
-          )}
-        />
-      )}
     </View>
   );
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      <FlatList
-        ref={listRef}
-        onLayout={handleListLayout}
-        onScroll={(e) => { scrollOffset.current = e.nativeEvent.contentOffset.y; }}
-        scrollEventThrottle={16}
+      <ReorderableList
         data={rows}
         keyExtractor={(row) => (row.kind === 'completed-header' ? COMPLETED_HEADER_KEY : row.task.id)}
         ListHeaderComponent={ListHeader}
+        // Arraste por long-press (220ms) ativado por célula (ver ReorderableTaskCell)
+        // — só nas pendentes. O pan padrão da lib segue o dedo após o long-press.
+        dragEnabled={showReorder}
+        onReorder={handleReorder}
+        // Animação do item flutuante: leve escala + sombra durante o arraste.
+        cellAnimations={REORDER_CELL_ANIMATIONS}
+        // Realce de destino: uma faixa/linha destacada na posição onde o item cairá.
+        renderDropIndicator={renderDropIndicator}
+        autoscrollThreshold={0.12}
         renderItem={({ item: row, index }) => {
           if (row.kind === 'completed-header') {
             return <CompletedSectionHeader count={row.count} expanded={showCompleted} onToggle={toggleShowCompleted} />;
@@ -482,17 +455,35 @@ export default function TasksScreen() {
           // "Concluídas".
           const next = rows[index + 1];
           const isLast = !next || next.kind === 'completed-header';
+          const onToggle = () => {
+            const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
+            toggleStatus.mutate({ id: item.id, status: newStatus });
+          };
+          const onPress = () => router.push(`/task/${item.id}` as never);
+          const onFavorite = () => toggleFav.mutate({ id: item.id, isFavorite: !item.isFavorite });
+          const onDelete = () => handleDelete(item.id, item.title);
+
+          // Pendentes (índices 0..pendingCount-1) ficam arrastáveis quando elegível.
+          if (showReorder && item.status !== 'completed' && index < pendingCount) {
+            return (
+              <ReorderableTaskCell
+                task={item}
+                onToggle={onToggle}
+                onPress={onPress}
+                onFavorite={onFavorite}
+                onDelete={onDelete}
+              />
+            );
+          }
+
           return (
             <TaskItemSwipeable
               task={item}
               isLast={isLast}
-              onToggle={() => {
-                const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
-                toggleStatus.mutate({ id: item.id, status: newStatus });
-              }}
-              onPress={() => router.push(`/task/${item.id}` as never)}
-              onFavorite={() => toggleFav.mutate({ id: item.id, isFavorite: !item.isFavorite })}
-              onDelete={() => handleDelete(item.id, item.title)}
+              onToggle={onToggle}
+              onPress={onPress}
+              onFavorite={onFavorite}
+              onDelete={onDelete}
             />
           );
         }}
@@ -605,8 +596,16 @@ const styles = StyleSheet.create({
   actionTab: { borderStyle: 'dashed' },
   editIcon: { fontSize: 13 },
 
-  // Reorder (arraste)
-  dragRow: { justifyContent: 'center' },
+  // Reorder (arraste) — realce do destino onde o item será solto.
+  dropIndicator: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing[4],
+  },
+  dropIndicatorBar: {
+    height: 3,
+    borderRadius: 2,
+  },
 
   // Task list
   list: { paddingBottom: 96 },

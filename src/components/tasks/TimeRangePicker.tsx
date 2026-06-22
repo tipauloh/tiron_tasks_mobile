@@ -4,7 +4,7 @@ import { Text } from '@/components/ui/Text';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { useTheme } from '@/hooks/use-theme';
-import { maskTime, isValidTime, isEndAfterStart } from '@/utils/time';
+import { maskTime, isValidTime, isEndAfterStart, shiftEndOnStartChange } from '@/utils/time';
 
 interface Props {
   start: string; // 'HH:MM' ou ''
@@ -19,6 +19,16 @@ interface Props {
  */
 export function TimeRangePicker({ start, end, onChangeStart, onChangeEnd }: Props) {
   const { theme } = useTheme();
+
+  // Ao mudar o INÍCIO, desloca o FIM mantendo a janela de tempo definida antes
+  // (ex.: 09:00–10:30 → muda início p/ 11:00 → fim vira 12:30). O FIM permanece
+  // independente (mudar o fim não altera o início).
+  function handleStartChange(raw: string) {
+    const masked = maskTime(raw);
+    const shiftedEnd = shiftEndOnStartChange(start, end, masked);
+    onChangeStart(masked);
+    if (shiftedEnd !== null && shiftedEnd !== end) onChangeEnd(shiftedEnd);
+  }
 
   const startInvalid = !isValidTime(start);
   const endInvalid = !isValidTime(end);
@@ -39,7 +49,7 @@ export function TimeRangePicker({ start, end, onChangeStart, onChangeEnd }: Prop
           </Text>
           <TextInput
             value={start}
-            onChangeText={(t) => onChangeStart(maskTime(t))}
+            onChangeText={handleStartChange}
             placeholder="HH:MM"
             placeholderTextColor={theme.colors.textTertiary}
             keyboardType="number-pad"
