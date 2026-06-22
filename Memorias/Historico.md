@@ -168,3 +168,8 @@ A lista era criada com `icon='flag'` (string), mas o app renderiza o ícone como
 
 ### FEAT-DRAG-HANDLE — Punho de arraste (mesmo toque, definitivo) (2026-06-22)
 Adicionado punho ⠿ dedicado à direita de cada tarefa pendente arrastável, FORA do Swipeable. Usa `Pressable onPressIn={() => drag()}` (RN core): toca e já arrasta no MESMO toque — o Pressable não cancela o pan interno da lib (≠ Gesture.LongPress) e, fora do Swipeable, não disputa com o swipe-to-delete. Resolve de vez o "2º toque". Mantém highlight por cor (cellAnimations) + slot no destino. ReorderableTaskCell virou View[reorderContent flex:1 + dragHandle].
+
+### FEAT-EMAIL-TASK Etapa A — E-mail em campos próprios + bandeirinha (2026-06-22)
+- **Backend (deployado VPS):** colunas `tasks.email_from/email_subject/email_preview/email_received_at/email_web_link`. `sync_emails` grava esses campos; descrição da tarefa passou a ser **"Conforme e-mail abaixo"** (editável). Re-sync atualiza o bloco do e-mail das tarefas existentes e migra a descrição auto-gerada antiga (LIKE '📧%') para o padrão. `TaskDetail.email` (EmailMetaSchema) em `get_task`.
+- **Mobile (OTA):** `Task.isEmailLinked` (mapper: external_provider==microsoft && external_email_id); `TaskItem` mostra **🚩 antes do título**. Tela de detalhe ganhou bloco **"E-mail sinalizado"** (remetente, assunto, data, prévia) abaixo de Informações. `ApiTaskDetail.email`/`ApiEmailMeta`.
+- Tarefas antigas: bandeirinha aparece já (têm external_email_id); o bloco do e-mail aparece após o próximo sync (preenche email_*).

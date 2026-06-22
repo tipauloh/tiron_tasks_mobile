@@ -409,6 +409,40 @@ export default function TaskDetailScreen() {
             </View>
           </View>
 
+          {task.email && (
+            <View style={styles.section}>
+              <SectionLabel label="E-mail sinalizado" />
+              <View style={[styles.emailCard, { backgroundColor: theme.colors.surface, borderColor: Colors.primary + '40' }]}>
+                <View style={styles.emailHead}>
+                  <Text style={{ fontSize: 18 }}>🚩</Text>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    {task.email.email_from ? (
+                      <Text variant="caption" secondary numberOfLines={1}>{task.email.email_from}</Text>
+                    ) : null}
+                    {task.email.subject ? (
+                      <Text variant="body" weight="semibold" numberOfLines={3}>{task.email.subject}</Text>
+                    ) : null}
+                    {task.email.received_at ? (
+                      <Text variant="caption" tertiary>
+                        {(() => {
+                          const d = new Date(task.email.received_at);
+                          return isNaN(d.getTime())
+                            ? task.email.received_at
+                            : d.toLocaleString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        })()}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+                {task.email.preview ? (
+                  <Text variant="body" style={{ color: theme.colors.textSecondary, lineHeight: 20 }}>
+                    {task.email.preview}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          )}
+
           <View style={[styles.section, { marginTop: Spacing[4] }]}>
             <Button
               title={updateTask.isPending ? 'Salvando...' : 'Salvar alterações'}
@@ -444,5 +478,7 @@ const styles = StyleSheet.create({
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2], padding: Spacing[3], borderRadius: Radius.md, borderWidth: 1 },
   metaCard: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', padding: Spacing[3] },
+  emailCard: { borderRadius: Radius.md, borderWidth: 1, padding: Spacing[3], gap: Spacing[3] },
+  emailHead: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[3] },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing[4] },
 });

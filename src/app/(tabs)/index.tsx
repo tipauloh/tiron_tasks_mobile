@@ -87,6 +87,7 @@ function apiTaskToLegacy(t: ApiTaskSummary) {
     listId: undefined,
     description: undefined,
     parentId: undefined,
+    isEmailLinked: t.external_provider === 'microsoft' && !!t.external_email_id,
   };
 }
 

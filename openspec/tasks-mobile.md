@@ -193,3 +193,6 @@ Mail.ReadWrite; graphPatch + setEmailFlagComplete/Flagged; email-mirror ligado e
 
 ### FIX-UX-003 ✅ (2026-06-22)
 Drag: panActivateAfterLongPress (mesmo toque) + highlight por cor no item (cellAnimations backgroundColor) + slot suave no destino (sem listra). Removido ReorderableTaskCell.
+
+### FEAT-EMAIL-TASK Etapa A ✅ (2026-06-22)
+Backend (VPS): colunas email_* + sync grava + descrição 'Conforme e-mail abaixo' + TaskDetail.email. Mobile (OTA): bandeirinha 🚩 no título + bloco do e-mail na tela de detalhe.

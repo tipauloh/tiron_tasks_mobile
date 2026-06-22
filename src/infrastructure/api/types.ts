@@ -111,12 +111,21 @@ export interface ApiEmailSyncResult {
   list_id: number;
 }
 
+export interface ApiEmailMeta {
+  email_from: string | null;
+  subject: string | null;
+  preview: string | null;
+  received_at: string | null;
+  web_link: string | null;
+}
+
 export interface ApiTaskDetail extends ApiTaskSummary {
   description: string | null;
   task_list: ApiTaskList | null;
   checklist_items: ApiChecklistItem[];
   comments_count: number;
   reminders: ApiReminder[];
+  email: ApiEmailMeta | null;
 }
 
 export interface ApiTaskCreateRequest {

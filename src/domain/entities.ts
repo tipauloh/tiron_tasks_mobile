@@ -18,6 +18,7 @@ export interface Task {
   completedAt?: string;   // ISO datetime
   createdAt: string;
   updatedAt: string;
+  isEmailLinked?: boolean; // tarefa criada a partir de um e-mail (Microsoft 365)
 }
 
 export interface TaskList {

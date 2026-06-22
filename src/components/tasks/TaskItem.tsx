@@ -75,7 +75,7 @@ export function TaskItem({ task, onToggle, onPress, onFavorite, isLast = false }
             ]}
             numberOfLines={2}
           >
-            {task.title}
+            {task.isEmailLinked ? '🚩 ' : ''}{task.title}
           </Text>
 
           <View style={styles.meta}>
