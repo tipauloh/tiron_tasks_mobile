@@ -153,3 +153,6 @@ Feature faseada (decisões do usuário: criação automática; concluir tarefa m
 - **Cor no item arrastado:** `REORDER_CELL_ANIMATIONS` ganhou `backgroundColor` (primary suave) + sombra colorida; o TaskItem é transparente, então o fundo aparece só no item ativo. Antes não havia destaque de cor.
 - **Indicador de destino:** a "listra" fina (dropIndicatorBar) virou um "slot" suave (fundo primary + contorno tracejado arredondado).
 - **Segurança:** `handleReorder` ignora origem fora das pendentes (`from >= pendingCount`), pois agora o long-press é global na lista.
+
+### FIX-UX-003b — Reverter panActivateAfterLongPress (quebrou o drag) (2026-06-22)
+`panActivateAfterLongPress` instala um pan próprio que COMPETE com o `Swipeable` (swipe-delete) de cada item → o arraste parou de iniciar. Revertido para o gesto manual que convivia com o swipe (Gesture.LongPress minDuration 180 + useReorderableDrag no GestureDetector, restaurado ReorderableTaskCell). **Mantidos** os ganhos visuais: highlight por cor (cellAnimations backgroundColor) e slot suave no destino. Lição: nesta lib, long-press explícito > panActivateAfterLongPress quando há Swipeable na célula.
