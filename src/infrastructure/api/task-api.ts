@@ -18,6 +18,7 @@ export type TaskListParams = {
   priority?: string;
   task_list_id?: number;
   search?: string;
+  is_favorite?: boolean;
   limit?: number;
 };
 

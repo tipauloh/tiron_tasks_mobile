@@ -166,12 +166,14 @@ export default function TasksScreen() {
   const myDayQuery = useMyDay();
   const importantQuery = useImportantTasks();
   const upcomingQuery = useUpcomingTasks();
+  // "Em Foco" = tarefas favoritadas (estrela/alvo). Só busca quando o foco está ativo.
+  const focusQuery = useTasks({ is_favorite: true });
 
   const isLoading = allQuery.isLoading || myDayQuery.isLoading;
 
   const apiTasks = useMemo(() => {
     if (isSearching) return allQuery.data?.data ?? [];
-    if (isFocus) return importantQuery.data ?? [];
+    if (isFocus) return focusQuery.data?.data ?? [];
     const todayStr = new Date().toISOString().split('T')[0];
     const vm = viewMode as ViewMode;
     switch (vm) {
@@ -186,7 +188,7 @@ export default function TasksScreen() {
         return (allQuery.data?.data ?? []).filter((t) => t.status === 'completed');
       default: return allQuery.data?.data ?? [];
     }
-  }, [isSearching, debouncedSearch, isFocus, viewMode, allQuery.data, myDayQuery.data, importantQuery.data, upcomingQuery.data]);
+  }, [isSearching, debouncedSearch, isFocus, viewMode, allQuery.data, myDayQuery.data, importantQuery.data, upcomingQuery.data, focusQuery.data]);
 
   const tasks = apiTasks.map(apiTaskToLegacy);
 
@@ -239,12 +241,14 @@ export default function TasksScreen() {
       {/* Greeting + Search */}
       <View style={[styles.headerRow, { paddingHorizontal: Spacing[4], paddingTop: Spacing[3], paddingBottom: Spacing[2] }]}>
         <View style={styles.greetingBlock}>
-          <View style={styles.greetingRow}>
-            <Text style={[styles.greetingText, { color: theme.colors.text, flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">
-              {getGreeting()}{firstName ? `, ${firstName}` : ''}
-            </Text>
-            <Text style={[styles.greetingText, { color: theme.colors.text }]}> 👋</Text>
-          </View>
+          <Text
+            style={[styles.greetingText, { color: theme.colors.text }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
+            {getGreeting()}{firstName ? `, ${firstName}` : ''} 👋
+          </Text>
           <Text style={[styles.greetingSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>
             {counters.due_today > 0
               ? `${counters.due_today} tarefa${counters.due_today !== 1 ? 's' : ''} para hoje`

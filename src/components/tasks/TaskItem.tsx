@@ -76,14 +76,15 @@ export function TaskItem({ task, onToggle, onPress, onFavorite }: TaskItemProps)
           </View>
         </View>
 
-        {/* Right: Favorite button */}
+        {/* Right: botão "Em Foco" (favoritar) — alvo 🎯, igual à lista Em Foco */}
         <TouchableOpacity
           onPress={() => onFavorite(task.id)}
           hitSlop={8}
           style={styles.favoriteButton}
+          accessibilityLabel={task.isFavorite ? 'Remover do Em Foco' : 'Adicionar ao Em Foco'}
         >
-          <Text style={[styles.star, { color: task.isFavorite ? Colors.warning : theme.colors.textTertiary }]}>
-            {task.isFavorite ? '★' : '☆'}
+          <Text style={[styles.star, { opacity: task.isFavorite ? 1 : 0.3 }]}>
+            🎯
           </Text>
         </TouchableOpacity>
       </TouchableOpacity>
