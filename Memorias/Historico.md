@@ -159,3 +159,6 @@ Feature faseada (decisões do usuário: criação automática; concluir tarefa m
 
 ### FIX-UX-003c — Arraste no MESMO toque (sem 2º clique) (2026-06-22)
 Raiz do "2º clique": o pan que move o item vive na LISTA (Gesture.Pan da lib); `drag()` só ATIVA a célula. Um `Gesture.LongPress` do gesture-handler é concorrente e CANCELA esse pan → precisa de 2º toque. Solução: padrão canônico da lib `Pressable onLongPress={drag}` (RN core) DENTRO do Swipeable (antes estava por fora → não disparava). O Pressable não cancela o pan da lib → mesmo toque já arrasta. `dragHandler` prop no TaskItemSwipeable; removido Gesture/GestureDetector. Se ainda exigir 2º toque, plano B = drag handle dedicado.
+
+### FIX-UX-003c revertido — Pressable não dispara dentro do Swipeable (2026-06-22)
+A tentativa `Pressable onLongPress={drag}` (RN core) DENTRO do Swipeable também não dispara o drag (o gesture-handler do Swipeable bloqueia o toque do RN core). Revertido para `Gesture.LongPress` (gesture-handler) que FUNCIONA, porém com "2º toque" (o LongPress cancela o pan interno da lib). CONCLUSÃO: com Swipeable na mesma linha, mesmo-toque puro não é viável sem redesenho — caminho definitivo seria um "drag handle" dedicado. Estado estável atual = Gesture.LongPress (minDuration 180) + cor + slot.

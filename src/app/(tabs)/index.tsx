@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Swipeable } from 'react-native-gesture-handler';
+import { Swipeable, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReorderableList, {
   reorderItems,
   useReorderableDrag,
@@ -122,15 +122,13 @@ function StatCard({
 
 // ─── TaskItemSwipeable ───────────────────────────────────────────────────────
 
-function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLast, dragHandler }: {
+function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLast }: {
   task: ReturnType<typeof apiTaskToLegacy>;
   onToggle: () => void;
   onPress: () => void;
   onFavorite: () => void;
   onDelete: () => void;
   isLast?: boolean;
-  /** Quando presente, um long-press na linha inicia o arraste (reorder). */
-  dragHandler?: () => void;
 }) {
   const swipeableRef = useRef<Swipeable>(null);
   const renderRightActions = useCallback(() => (
@@ -139,22 +137,9 @@ function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLa
     </TouchableOpacity>
   ), [onDelete]);
 
-  const content = (
-    <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} isLast={isLast} />
-  );
-
   return (
     <Swipeable ref={swipeableRef} renderRightActions={renderRightActions} rightThreshold={60} friction={2}>
-      {dragHandler ? (
-        // Pressable (RN core) DENTRO do Swipeable: o onLongPress dispara o drag e,
-        // por NÃO ser um gesto do gesture-handler, não cancela o pan interno da lib
-        // — então o MESMO toque já arrasta (sem precisar de um segundo toque).
-        <Pressable onLongPress={dragHandler} delayLongPress={200}>
-          {content}
-        </Pressable>
-      ) : (
-        content
-      )}
+      <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} isLast={isLast} />
     </Swipeable>
   );
 }
@@ -173,15 +158,20 @@ function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: 
   onDelete: () => void;
 }) {
   const drag = useReorderableDrag();
+  const longPress = useMemo(
+    () => Gesture.LongPress().minDuration(180).runOnJS(true).onStart(() => drag()),
+    [drag],
+  );
   return (
-    <TaskItemSwipeable
-      task={task}
-      onToggle={onToggle}
-      onPress={onPress}
-      onFavorite={onFavorite}
-      onDelete={onDelete}
-      dragHandler={drag}
-    />
+    <GestureDetector gesture={longPress}>
+      <TaskItemSwipeable
+        task={task}
+        onToggle={onToggle}
+        onPress={onPress}
+        onFavorite={onFavorite}
+        onDelete={onDelete}
+      />
+    </GestureDetector>
   );
 }
 
