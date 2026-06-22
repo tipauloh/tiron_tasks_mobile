@@ -5,6 +5,9 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 ## [Unreleased]
 
 ### Added
+- Lembretes de tarefa por notificação (na hora / minutos antes / personalizado). [FEAT-003]
+- Compartilhar listas por e-mail (admin/membros); tarefas da lista visíveis aos membros. [FEAT-003]
+- Drag-and-drop sem botão (long-press) e separador visual entre tarefas. [FEAT-003]
 - Recorrência de tarefas (diária/semanal/mensal/anual) refletida no calendário. [FEAT-002]
 - Horário de início e fim nas tarefas. [FEAT-002]
 - Reordenar tarefas por drag-and-drop (modo Reordenar). [FEAT-002]

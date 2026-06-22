@@ -105,3 +105,11 @@
 - **Mobile:** `TimeRangePicker` + `RecurrencePicker` em criar/editar; `TaskItem` mostra 🕘 horário e 🔁; `calendar.tsx` expande recorrência no cliente (`utils/recurrence.ts` `expandRecurrence`, 24 testes); `DraggableTaskList` (gesture-handler+reanimated, JS-only) no modo "Reordenar" → `useReorderTasks`. Total 163 testes.
 - **Entrega:** backend via deploy VPS; mobile via OTA `b290c451-2c62-4f0c-a1ba-b783c33ea3fd` (sem build — nenhum módulo nativo novo).
 - **Aprendizado:** agente rodou migration no Docker LOCAL; produção (VPS) precisou de git pull + migrate à parte (ver `[[reference_vps_deploy]]`).
+
+### FEAT-003 — Lembretes, compartilhamento de listas, drag-drop pro e separador (2026-06-22)
+- **Migration (app_web):** `task_list_members` (task_list_id, mobile_user_id, role admin/member; sem FK). Aplicada local e VPS. app_api também cria via `CREATE TABLE IF NOT EXISTS` no startup (self-healing).
+- **Backend (app_api):** lembretes (`POST /tasks/{id}/reminders`, `DELETE /tasks/reminders/{id}`, `reminders[]` no detail); compartilhamento (`GET /task-lists` retorna `role`/`shared` + listas onde é membro; `POST/GET/DELETE /task-lists/{id}/members`; visibilidade de tarefas de listas compartilhadas). Deployado e validado em produção (2 usuários).
+- **Fix de regressão:** `_fetch_recurrence` fazia `dict(None)` quando a tarefa não tinha recorrência → 500 ao criar tarefa. Corrigido (`first = ...first(); dict(first) if first else None`).
+- **Mobile:** `lib/notifications.ts` (notificação LOCAL agendada — exige build, Expo Go não suporta) + `ReminderPicker`; `ListMembersSection` (convidar por e-mail) em edit-list; drag-and-drop profissional sem botão (long-press a qualquer momento, item flutuante + auto-scroll, manual sobre gesture-handler+reanimated, sem lib nova); separador hairline no `TaskItem`.
+- **Entrega:** backend via VPS; mobile via **BUILD** (notificações precisam de binário) + TestFlight. Build disparada.
+- **Decisão notificações:** LOCAL agendada (não push server) — mais simples/confiável p/ lembrete da própria tarefa.
