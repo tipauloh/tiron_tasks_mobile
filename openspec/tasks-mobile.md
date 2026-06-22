@@ -178,3 +178,6 @@ Tarefas futuras organizadas por fase e prioridade. Cada item deve gerar uma spec
 **Prioridade:** Média
 - Testes E2E com Detox
 - Cobertura dos fluxos principais (criar/concluir/deletar tarefa)
+
+### FIX-UX-001 ✅ (2026-06-22)
+Drag-drop via react-native-reorderable-list; separador `border`; TimeRangePicker mantém janela ao mudar início; EmptyState corrigido; M365 sync resiliente + diagnóstico (GraphError). Arquivos: `(tabs)/index.tsx`, `TaskItem.tsx`, `TimeRangePicker.tsx`, `utils/time.ts`, `_layout.tsx`, `modules/microsoft365/{graph/client,services/real-microsoft365.service,screens/MicrosoftConnectionScreen}`.

@@ -122,3 +122,10 @@
 - **UI:** Perfil → Integrações → Microsoft 365.
 - **Docs:** `docs/integrations/microsoft365/` (overview, architecture, authentication, permissions, security, sync-engine, storage, testing, troubleshooting, future-roadmap).
 - **Testes:** 231 (27 novos do M365). **Exige BUILD** (módulos nativos). Build disparada + TestFlight.
+
+### FIX-UX-001 — Drag-drop (lib), separador, janela de horário, EmptyState, diagnóstico M365 (2026-06-22)
+- **Drag-and-drop:** substituído o manual bugado (ia p/ extremos, sem ajuste fino) por `react-native-reorderable-list@0.18` (drop-in de FlatList, Reanimated 4). Long-press a qualquer momento, ajuste fino, highlight de destino (renderDropIndicator), auto-scroll. `GestureHandlerRootView` no root. Removido `DraggableTaskList.tsx`.
+- **Separador:** `TaskItem` borderBottom `borderLight` → `border` (mais visível).
+- **TimeRangePicker:** ao mudar o INÍCIO, desloca o FIM mantendo a duração (`shiftEndOnStartChange` em utils/time, testado); FIM independente.
+- **EmptyState falso:** "Nenhuma tarefa" aparecia com tarefas listadas porque as pendentes saíam da FlatList; com o drop-in elas voltam para `data={rows}` → corrigido.
+- **Microsoft 365 sync:** `Promise.allSettled` (e-mail e To Do independentes — um não derruba o outro); `GraphError` com status+código real; a tela mostra o erro real (ex.: HTTP 403 de permissão) em vez de "Sincronizado" genérico. **Causa provável do sync vazio:** escopos `Mail.Read`/`Tasks.Read` ausentes no token → exige reconectar após adicionar permissões.

@@ -4,6 +4,12 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Fixed
+- Drag-and-drop reescrito (lib, ajuste fino, highlight de destino) + separador mais visível. [FIX-UX-001]
+- Editar horário: mover o início desloca o fim mantendo a duração. [FIX-UX-001]
+- Corrigido "Nenhuma tarefa" aparecendo com tarefas na lista. [FIX-UX-001]
+- Microsoft 365: sync resiliente e mensagem de erro real (diagnóstico). [FIX-UX-001]
+
 ### Added
 - Lembretes de tarefa por notificação (na hora / minutos antes / personalizado). [FEAT-003]
 - Compartilhar listas por e-mail (admin/membros); tarefas da lista visíveis aos membros. [FEAT-003]
