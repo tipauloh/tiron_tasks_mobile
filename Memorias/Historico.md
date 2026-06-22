@@ -113,3 +113,12 @@
 - **Mobile:** `lib/notifications.ts` (notificação LOCAL agendada — exige build, Expo Go não suporta) + `ReminderPicker`; `ListMembersSection` (convidar por e-mail) em edit-list; drag-and-drop profissional sem botão (long-press a qualquer momento, item flutuante + auto-scroll, manual sobre gesture-handler+reanimated, sem lib nova); separador hairline no `TaskItem`.
 - **Entrega:** backend via VPS; mobile via **BUILD** (notificações precisam de binário) + TestFlight. Build disparada.
 - **Decisão notificações:** LOCAL agendada (não push server) — mais simples/confiável p/ lembrete da própria tarefa.
+
+### M365-001 — Integração Microsoft 365 (read-only) (2026-06-22)
+- **Escopo:** somente leitura. E-mails sinalizados (Outlook) + Microsoft To Do. **Outlook Tasks descartado** (API descontinuada em 2022).
+- **Auth:** OAuth 2.0 Authorization Code + PKCE (`expo-auth-session`+`expo-crypto`), tokens só no Secure Store, refresh automático, sem client secret. Client ID `135c417a-71ba-4f72-964a-b535bf441905` em `app.json extra.microsoftClientId`. Redirect `tirontasks://auth/microsoft`. Tenant `common`.
+- **Escopos delegados mínimos:** User.Read, Mail.Read, Tasks.Read, offline_access.
+- **Módulo:** `src/modules/microsoft365/` (auth, graph, sync, storage SQLite, repositories, models/mappers, services, hooks, components, screens). Flagged via filtro paginado; To Do via delta. Auto-sync (abrir/30min/foreground). Resumo de e-mail gerado localmente. Logs com redação.
+- **UI:** Perfil → Integrações → Microsoft 365.
+- **Docs:** `docs/integrations/microsoft365/` (overview, architecture, authentication, permissions, security, sync-engine, storage, testing, troubleshooting, future-roadmap).
+- **Testes:** 231 (27 novos do M365). **Exige BUILD** (módulos nativos). Build disparada + TestFlight.
