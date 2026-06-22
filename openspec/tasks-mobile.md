@@ -190,3 +190,6 @@ Backend (app_api, deployado VPS): colunas external_email_id/provider + is_system
 
 ### FEAT-EMAIL-TASK Fase 3 ✅ (2026-06-22)
 Mail.ReadWrite; graphPatch + setEmailFlagComplete/Flagged; email-mirror ligado em useToggleTaskStatus (simétrico). Exige reconectar. OTA.
+
+### FIX-UX-003 ✅ (2026-06-22)
+Drag: panActivateAfterLongPress (mesmo toque) + highlight por cor no item (cellAnimations backgroundColor) + slot suave no destino (sem listra). Removido ReorderableTaskCell.

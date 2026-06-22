@@ -147,3 +147,9 @@ Feature faseada (decisões do usuário: criação automática; concluir tarefa m
 - `MS_SCOPES`: Mail.Read → **Mail.ReadWrite** (única escrita: flag/flagStatus). `graphPatch` em `graph/client.ts`; `setEmailFlagComplete/Flagged` em `graph/mail.ts`.
 - `services/email-mirror.ts` `mirrorTaskCompletionToEmail` (best-effort, retorna needsReconnect). Ligado em `useToggleTaskStatus.onSuccess` (use-tasks.ts) via `res.data.external_email_id`/`external_provider`. Simétrico: concluir→'complete', reabrir→'flagged'. Falha por permissão → Alert orientando reconectar.
 - **Exige usuário Desconectar→Conectar** uma vez (token novo com Mail.ReadWrite). Entregue por OTA.
+
+### FIX-UX-003 — Drag mais fluido + destaque por cor (2026-06-22)
+- **Mesmo toque:** trocado o gesto manual (Gesture.LongPress + useReorderableDrag) pela prop nativa da lib `panActivateAfterLongPress={180}` — segura e já arrasta no mesmo toque, mais fluido. Removido o componente `ReorderableTaskCell` e imports de gesto.
+- **Cor no item arrastado:** `REORDER_CELL_ANIMATIONS` ganhou `backgroundColor` (primary suave) + sombra colorida; o TaskItem é transparente, então o fundo aparece só no item ativo. Antes não havia destaque de cor.
+- **Indicador de destino:** a "listra" fina (dropIndicatorBar) virou um "slot" suave (fundo primary + contorno tracejado arredondado).
+- **Segurança:** `handleReorder` ignora origem fora das pendentes (`from >= pendingCount`), pois agora o long-press é global na lista.

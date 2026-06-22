@@ -29,6 +29,7 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 - Identidade visual: novo ícone da marca (T + check) em launcher/splash/adaptive/favicon e logo na tela de login. Botões Google/Apple conforme guidelines oficiais (desabilitados até configurar OAuth). [BRAND-001]
 
 ### Changed
+- Reordenar tarefas: arraste no mesmo toque (panActivateAfterLongPress) e item destacado por cor (sem a listra). [FIX-UX-003]
 - Listagens de tarefas (dashboard, tarefas, calendário, busca): tarefas concluídas agora ficam numa seção "Concluídas (N)" recolhível abaixo das pendentes — oculta por padrão, preferência global persistida. [FIX-002]
 
 ### Fixed

@@ -14,10 +14,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Swipeable, Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Swipeable } from 'react-native-gesture-handler';
 import ReorderableList, {
   reorderItems,
-  useReorderableDrag,
   type ReorderableListReorderEvent,
 } from 'react-native-reorderable-list';
 import { useFilterStore } from '@/store/filter-store';
@@ -47,11 +46,15 @@ const FOCUS_COLOR = '#7B4DFF';
 // Animação do item flutuante enquanto é arrastado (react-native-reorderable-list).
 // Leve escala + sombra elevam visualmente a linha "pega" pelo dedo. Sobrescrevemos
 // também a opacidade para 1 (o padrão da lib reduz a opacidade do item arrastado).
+// Item sendo arrastado: destaque por COR de fundo (não listra) + leve escala e
+// sombra para parecer "levantado". O TaskItem é transparente, então este fundo
+// aparece atrás dele apenas enquanto o item está ativo (a lib reverte ao soltar).
 const REORDER_CELL_ANIMATIONS = {
-  transform: [{ scale: 1.04 }],
+  transform: [{ scale: 1.03 }],
   opacity: 1,
-  shadowColor: '#000',
-  shadowOpacity: 0.18,
+  backgroundColor: Colors.primary + '1A',
+  shadowColor: Colors.primary,
+  shadowOpacity: 0.22,
   shadowRadius: 12,
   shadowOffset: { width: 0, height: 6 },
   elevation: 8,
@@ -137,42 +140,6 @@ function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLa
     <Swipeable ref={swipeableRef} renderRightActions={renderRightActions} rightThreshold={60} friction={2}>
       <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} isLast={isLast} />
     </Swipeable>
-  );
-}
-
-// ─── ReorderableTaskCell ─────────────────────────────────────────────────────
-// Célula de tarefa PENDENTE arrastável. O arraste é iniciado por long-press em
-// qualquer ponto da linha (via `useReorderableDrag`, sem botão "Reordenar"). O
-// swipe-to-delete continua disponível porque o `Swipeable` (pan horizontal) e o
-// drag (long-press) não competem entre si. A escala/sombra do item flutuante são
-// aplicadas pelo `ReorderableList` via `cellAnimations`.
-function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: {
-  task: ReturnType<typeof apiTaskToLegacy>;
-  onToggle: () => void;
-  onPress: () => void;
-  onFavorite: () => void;
-  onDelete: () => void;
-}) {
-  const drag = useReorderableDrag();
-  // Long-press do gesture-handler (não o Pressable do RN core, que NÃO dispara
-  // dentro de gestos do gesture-handler na nova arquitetura). `runOnJS(true)` faz
-  // o callback rodar na JS thread para chamar `drag()` (função JS da lib).
-  // Convive com o swipe-to-delete: long-press (parado) e pan (movimento horizontal)
-  // são gestos distintos e não competem.
-  const longPress = useMemo(
-    () => Gesture.LongPress().minDuration(220).runOnJS(true).onStart(() => drag()),
-    [drag],
-  );
-  return (
-    <GestureDetector gesture={longPress}>
-      <TaskItemSwipeable
-        task={task}
-        onToggle={onToggle}
-        onPress={onPress}
-        onFavorite={onFavorite}
-        onDelete={onDelete}
-      />
-    </GestureDetector>
   );
 }
 
@@ -276,6 +243,8 @@ export default function TasksScreen() {
 
   const handleReorder = useCallback(
     ({ from, to }: ReorderableListReorderEvent) => {
+      // Só reordena pendentes: ignora se a origem for o cabeçalho ou uma concluída.
+      if (from >= pendingCount) return;
       // Limita o destino à faixa de pendentes (não deixa cair sobre concluídas).
       const clampedTo = Math.min(Math.max(to, 0), pendingCount - 1);
       if (from === clampedTo) return;
@@ -287,16 +256,9 @@ export default function TasksScreen() {
     [pendingTasks, pendingCount, reorderTasks],
   );
 
-  // Realce de destino durante o arraste: um "slot" destacado (fundo suave + linha
-  // grossa na cor primária) mostrando exatamente onde o item vai cair.
-  const renderDropIndicator = useCallback(
-    () => (
-      <View style={[styles.dropIndicator, { backgroundColor: Colors.primary + '14' }]}>
-        <View style={[styles.dropIndicatorBar, { backgroundColor: Colors.primary }]} />
-      </View>
-    ),
-    [],
-  );
+  // Realce de destino durante o arraste: um "slot" suave (fundo na cor primária +
+  // contorno tracejado), sem a antiga listra fina. Mostra onde o item vai cair.
+  const renderDropIndicator = useCallback(() => <View style={styles.dropIndicator} />, []);
 
   const handleRefresh = () => {
     allQuery.refetch();
@@ -449,10 +411,12 @@ export default function TasksScreen() {
         // Arraste por long-press (220ms) ativado por célula (ver ReorderableTaskCell)
         // — só nas pendentes. O pan padrão da lib segue o dedo após o long-press.
         dragEnabled={showReorder}
+        // Segura ~180ms e já arrasta no MESMO toque (sem soltar/tocar de novo).
+        panActivateAfterLongPress={180}
         onReorder={handleReorder}
-        // Animação do item flutuante: leve escala + sombra durante o arraste.
+        // Item arrastado: leve escala + sombra + fundo destacado (cor) — ver REORDER_CELL_ANIMATIONS.
         cellAnimations={REORDER_CELL_ANIMATIONS}
-        // Realce de destino: uma faixa/linha destacada na posição onde o item cairá.
+        // Realce de destino: um "slot" suave (sem listra) na posição onde o item cairá.
         renderDropIndicator={renderDropIndicator}
         autoscrollThreshold={0.12}
         renderItem={({ item: row, index }) => {
@@ -472,19 +436,8 @@ export default function TasksScreen() {
           const onFavorite = () => toggleFav.mutate({ id: item.id, isFavorite: !item.isFavorite });
           const onDelete = () => handleDelete(item.id, item.title);
 
-          // Pendentes (índices 0..pendingCount-1) ficam arrastáveis quando elegível.
-          if (showReorder && item.status !== 'completed' && index < pendingCount) {
-            return (
-              <ReorderableTaskCell
-                task={item}
-                onToggle={onToggle}
-                onPress={onPress}
-                onFavorite={onFavorite}
-                onDelete={onDelete}
-              />
-            );
-          }
-
+          // O arraste é gerenciado pela lib (panActivateAfterLongPress): segura e
+          // já move no mesmo toque. O highlight do item ativo vem de cellAnimations.
           return (
             <TaskItemSwipeable
               task={item}
@@ -605,15 +558,16 @@ const styles = StyleSheet.create({
   actionTab: { borderStyle: 'dashed' },
   editIcon: { fontSize: 13 },
 
-  // Reorder (arraste) — realce do destino onde o item será solto.
+  // Reorder (arraste) — "slot" suave (cor + contorno tracejado) no destino.
   dropIndicator: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing[4],
-  },
-  dropIndicatorBar: {
-    height: 3,
-    borderRadius: 2,
+    marginHorizontal: Spacing[3],
+    marginVertical: Spacing[1],
+    borderRadius: 12,
+    backgroundColor: Colors.primary + '12',
+    borderWidth: 1.5,
+    borderColor: Colors.primary + '55',
+    borderStyle: 'dashed',
   },
 
   // Task list
