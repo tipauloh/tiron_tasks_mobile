@@ -98,3 +98,10 @@
 - **Bug:** "Em Foco" usava `/important` (prioridade alta/crítica), não favoritas → favoritar não refletia. **Backend (app_api):** adicionado filtro `is_favorite` ao endpoint de listagem (`GET /tasks?is_favorite=true`) + `task_service.list_tasks`. Deployado e validado.
 - **Mobile:** "Em Foco" passou a usar `useTasks({ is_favorite: true })`. Ícone de favoritar trocado de estrela (★) para 🎯 (opacidade indica estado). Saudação com `adjustsFontSizeToFit` (nome inteiro em 1 linha, sem cortar).
 - **OTA:** `f993937b-9370-4d9c-a93a-96781d3729a4`.
+
+### FEAT-002 — Recorrência, horário início/fim e drag-and-drop (2026-06-21)
+- **Migration (app_web):** colunas `start_time`/`end_time` (TIME) em `tasks`. Aplicada local E em produção (VPS git pull + artisan migrate).
+- **Backend (app_api):** schemas/serviço com `start_time`/`end_time` ("HH:MM") + `recurrence` (upsert/delete em `task_recurrences`); endpoint `PATCH /api/v1/tasks/reorder`; listagem ordena por `position ASC, id DESC`. Deployado (rsync+rebuild) e validado em produção.
+- **Mobile:** `TimeRangePicker` + `RecurrencePicker` em criar/editar; `TaskItem` mostra 🕘 horário e 🔁; `calendar.tsx` expande recorrência no cliente (`utils/recurrence.ts` `expandRecurrence`, 24 testes); `DraggableTaskList` (gesture-handler+reanimated, JS-only) no modo "Reordenar" → `useReorderTasks`. Total 163 testes.
+- **Entrega:** backend via deploy VPS; mobile via OTA `b290c451-2c62-4f0c-a1ba-b783c33ea3fd` (sem build — nenhum módulo nativo novo).
+- **Aprendizado:** agente rodou migration no Docker LOCAL; produção (VPS) precisou de git pull + migrate à parte (ver `[[reference_vps_deploy]]`).

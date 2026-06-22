@@ -5,6 +5,9 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 ## [Unreleased]
 
 ### Added
+- Recorrência de tarefas (diária/semanal/mensal/anual) refletida no calendário. [FEAT-002]
+- Horário de início e fim nas tarefas. [FEAT-002]
+- Reordenar tarefas por drag-and-drop (modo Reordenar). [FEAT-002]
 - Lista fixa "Em Foco" (🎯): agrupa tarefas favoritadas sem tirá-las das listas; sempre no topo. [FOCO-001]
 - Saudação do dashboard não quebra mais em 2 linhas com nomes grandes. [FOCO-001]
 - Login: cadastro de novo usuário e "esqueci minha senha" (código por e-mail). Backend: signup no app_api + reset no app_web. [AUTH-001]
