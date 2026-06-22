@@ -9,9 +9,13 @@ import { graphGetAllPages } from './client';
 import type { GraphMessage } from '../types';
 import { ms365Logger } from '../utils/logger';
 
-/** Busca todos os e-mails sinalizados (paginados). */
+/** Busca todos os e-mails sinalizados (paginados) e ordena por data (desc) no
+ * cliente — o Graph rejeita $orderby junto com o filtro de flag (InefficientFilter). */
 export async function fetchFlaggedEmails(): Promise<GraphMessage[]> {
   const messages = await graphGetAllPages<GraphMessage>(FLAGGED_MAIL_QUERY);
+  messages.sort((a, b) =>
+    (b.receivedDateTime ?? '').localeCompare(a.receivedDateTime ?? ''),
+  );
   ms365Logger.info('microsoft_graph', 'e-mails sinalizados buscados', {
     count: messages.length,
   });

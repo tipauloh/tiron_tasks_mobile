@@ -9,8 +9,8 @@ import {
   microsoft365ItemRepository,
   deltaTokenRepository,
 } from '../repositories';
-import { mapGraphMessageToItem, mapGraphTodoTaskToItem } from '../models/mappers';
-import { fetchFlaggedEmails, fetchTodoListsAndTasks, me } from '../graph';
+import { mapGraphMessageToItem } from '../models/mappers';
+import { fetchFlaggedEmails, me } from '../graph';
 import { GraphError } from '../graph/client';
 import {
   signIn,
@@ -129,39 +129,21 @@ export class RealMicrosoft365Service implements Microsoft365Service {
       // Garante que há token válido antes de bater no Graph (refresh se preciso).
       await getValidAccessToken();
 
-      // E-mails e tarefas são independentes: uma API falhar NÃO derruba a outra.
-      const [mailRes, todoRes] = await Promise.allSettled([
-        fetchFlaggedEmails(),
-        fetchTodoListsAndTasks(),
-      ]);
-
-      const messages = mailRes.status === 'fulfilled' ? mailRes.value : [];
-      const tasks = todoRes.status === 'fulfilled' ? todoRes.value : [];
-
+      // Escopo desta versão: apenas e-mails sinalizados (Tarefas/To Do removido).
+      const messages = await fetchFlaggedEmails();
       const emailItems: Microsoft365Item[] = messages.map((m) => mapGraphMessageToItem(m, now));
-      const taskItems: Microsoft365Item[] = tasks.map((t) => mapGraphTodoTaskToItem(t, now));
-      microsoft365ItemRepository.upsertItems([...emailItems, ...taskItems]);
-
-      const errors: string[] = [];
-      if (mailRes.status === 'rejected') errors.push(`E-mails: ${describeSyncError(mailRes.reason)}`);
-      if (todoRes.status === 'rejected') errors.push(`Tarefas: ${describeSyncError(todoRes.reason)}`);
-      const bothFailed = mailRes.status === 'rejected' && todoRes.status === 'rejected';
-
-      // Marca sincronizado se pelo menos uma fonte funcionou.
-      if (!bothFailed) microsoftAccountRepository.setLastSyncAt(account.id, now);
+      microsoft365ItemRepository.upsertItems(emailItems);
+      microsoftAccountRepository.setLastSyncAt(account.id, now);
 
       ms365Logger.info('microsoft_sync', 'sync finalizado', {
         emailCount: emailItems.length,
-        taskCount: taskItems.length,
-        errors: errors.length,
       });
 
       return {
-        status: bothFailed ? 'error' : 'success',
+        status: 'success',
         emailCount: emailItems.length,
-        taskCount: taskItems.length,
+        taskCount: 0,
         syncedAt: now,
-        error: errors.length ? errors.join(' · ') : undefined,
       };
     } catch (err) {
       // Falha antes mesmo das chamadas (ex.: token/refresh).

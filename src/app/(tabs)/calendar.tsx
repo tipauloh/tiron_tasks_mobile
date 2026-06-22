@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
 
   // Grid: fixed-pixel cells
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: Spacing[1] },
-  dayCell: { alignItems: 'center', justifyContent: 'center' },
+  dayCell: { alignItems: 'center', justifyContent: 'center', paddingBottom: 6 },
   dayNumber: { fontSize: 15, lineHeight: 20 },
   taskBadge: {
     position: 'absolute',

@@ -48,7 +48,7 @@ export function TaskItem({ task, onToggle, onPress, onFavorite, isLast = false }
           styles.row,
           {
             borderBottomColor: theme.colors.border,
-            borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+            borderBottomWidth: isLast ? 0 : 1,
           },
         ]}
         onPress={() => onPress(task)}

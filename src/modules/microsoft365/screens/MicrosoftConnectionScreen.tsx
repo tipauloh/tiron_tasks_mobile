@@ -18,7 +18,6 @@ import {
   MicrosoftAccountCard,
   MicrosoftConnectButton,
   MicrosoftEmailItem,
-  MicrosoftTaskItem,
 } from '../components';
 import type { SyncStatus } from '../types';
 
@@ -29,7 +28,6 @@ export function MicrosoftConnectionScreen() {
 
   const connectionQuery = useMicrosoftAccount();
   const emailsQuery = useMicrosoft365Items('EMAIL');
-  const tasksQuery = useMicrosoft365Items('TODO_TASK');
 
   const connectMutation = useMicrosoftConnect();
   const disconnectMutation = useMicrosoftDisconnect();
@@ -89,7 +87,6 @@ export function MicrosoftConnectionScreen() {
   }
 
   const emails = emailsQuery.data ?? [];
-  const tasks = tasksQuery.data ?? [];
 
   return (
     <SafeAreaView
@@ -119,7 +116,7 @@ export function MicrosoftConnectionScreen() {
               Microsoft 365
             </Text>
             <Text variant="body" secondary style={styles.heroText}>
-              Conecte sua conta Microsoft para sincronizar tarefas e emails sinalizados.
+              Conecte sua conta Microsoft para sincronizar seus e-mails sinalizados.
             </Text>
             <View style={styles.connectBtn}>
               <MicrosoftConnectButton
@@ -137,7 +134,6 @@ export function MicrosoftConnectionScreen() {
               <MicrosoftAccountCard
                 account={state.account}
                 emailCount={state.emailCount}
-                taskCount={state.taskCount}
                 status={syncStatus}
               />
             ) : null}
@@ -171,22 +167,9 @@ export function MicrosoftConnectionScreen() {
               </View>
             ) : null}
 
-            {tasks.length > 0 ? (
-              <View style={styles.section}>
-                <Text variant="label" secondary style={styles.sectionTitle}>
-                  MICROSOFT TO DO
-                </Text>
-                <View style={styles.list}>
-                  {tasks.map((item) => (
-                    <MicrosoftTaskItem key={item.id} item={item} />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {emails.length === 0 && tasks.length === 0 ? (
+            {emails.length === 0 ? (
               <Text variant="body" secondary style={styles.empty}>
-                Nenhum item sincronizado ainda. Toque em "Sincronizar Agora".
+                Nenhum e-mail sinalizado sincronizado ainda. Toque em "Sincronizar Agora".
               </Text>
             ) : null}
           </View>

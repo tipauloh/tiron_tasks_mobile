@@ -1,7 +1,7 @@
 # Integração Microsoft 365 — Visão Geral e Análise Inicial
 
-> Status: **Fase 1–3 (pesquisa, arquitetura, plano)**. Implementação iniciada.
-> Escopo desta versão: **SOMENTE LEITURA (read-only)**. O app nunca altera dados na Microsoft.
+> Status: **Implementado**. Escopo desta versão: **SOMENTE LEITURA (read-only)**. O app nunca altera dados na Microsoft.
+> **Atualização (2026-06-22):** a sincronização de **tarefas (Microsoft To Do = Tarefas do Outlook) foi removida** por decisão de produto. Esta versão sincroniza **apenas e-mails sinalizados**. Escopo `Tasks.Read` removido. As referências a To Do/tarefas abaixo são históricas (mantidas só como contexto).
 
 ## 1. Objetivo
 Permitir conectar uma conta Microsoft 365 e **sincronizar/exibir** (read-only):

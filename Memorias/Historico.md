@@ -129,3 +129,10 @@
 - **TimeRangePicker:** ao mudar o INÍCIO, desloca o FIM mantendo a duração (`shiftEndOnStartChange` em utils/time, testado); FIM independente.
 - **EmptyState falso:** "Nenhuma tarefa" aparecia com tarefas listadas porque as pendentes saíam da FlatList; com o drop-in elas voltam para `data={rows}` → corrigido.
 - **Microsoft 365 sync:** `Promise.allSettled` (e-mail e To Do independentes — um não derruba o outro); `GraphError` com status+código real; a tela mostra o erro real (ex.: HTTP 403 de permissão) em vez de "Sincronizado" genérico. **Causa provável do sync vazio:** escopos `Mail.Read`/`Tasks.Read` ausentes no token → exige reconectar após adicionar permissões.
+
+### FIX-UX-002 — Drag (gesto), e-mail Graph, M365 só e-mails, separador, calendário (2026-06-22)
+- **Drag não iniciava:** o `onLongPress` era de um `Pressable` (RN core) por fora do `Swipeable` (gesture-handler) → na nova arquitetura o gesto do gh tem prioridade e o long-press nunca disparava. Trocado por `Gesture.LongPress().runOnJS(true)` do gesture-handler (convive com o swipe-to-delete).
+- **Microsoft 365 e-mails (HTTP 400 InefficientFilter):** o Graph rejeita `$filter` em flag/flagStatus combinado com `$orderby=receivedDateTime`. Removido o `$orderby` da query; ordenação feita no cliente. (Mail.Read estava OK — era erro de query, não permissão.)
+- **Microsoft 365 — escopo reduzido:** removida a sincronização de tarefas (To Do = Tarefas do Outlook; API antiga de Outlook Tasks descontinuada em 2022). Agora só **e-mails sinalizados**. Escopo `Tasks.Read` removido; UI sem contador/lista de tarefas. Decisão do usuário.
+- **Separador entre tarefas:** espessura `hairline → 1px` (mais visível, após já ter mudado a cor p/ `border`).
+- **Calendário:** número do dia subido (`paddingBottom: 6` na célula) para centralizar melhor.

@@ -10,7 +10,6 @@ import type { MicrosoftAccount, SyncStatus } from '../types';
 interface Props {
   account: MicrosoftAccount;
   emailCount: number;
-  taskCount: number;
   status: SyncStatus;
 }
 
@@ -29,7 +28,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 /** Card com identidade da conta, contadores e status de sincronização. */
-export function MicrosoftAccountCard({ account, emailCount, taskCount, status }: Props) {
+export function MicrosoftAccountCard({ account, emailCount, status }: Props) {
   const { theme } = useTheme();
   const initials = account.displayName
     .split(' ')
@@ -54,9 +53,7 @@ export function MicrosoftAccountCard({ account, emailCount, taskCount, status }:
       </View>
 
       <View style={[styles.statsRow, { borderColor: theme.colors.border }]}>
-        <Stat value={emailCount} label="E-mails" />
-        <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-        <Stat value={taskCount} label="Tarefas" />
+        <Stat value={emailCount} label="E-mails sinalizados" />
       </View>
 
       <MicrosoftSyncStatus status={status} lastSyncAt={account.lastSyncAt} />

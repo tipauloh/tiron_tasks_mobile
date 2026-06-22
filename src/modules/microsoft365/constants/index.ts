@@ -10,14 +10,14 @@ export const MS_TOKEN_ENDPOINT = `${MS_AUTHORITY}/oauth2/v2.0/token`;
 
 export const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
-/** Escopos delegados — SOMENTE LEITURA (princípio do menor privilégio). */
+/** Escopos delegados — SOMENTE LEITURA (princípio do menor privilégio).
+ * Escopo desta versão: identidade + e-mails sinalizados (To Do/Tarefas removido). */
 export const MS_SCOPES = [
   'openid',
   'profile',
   'offline_access',
   'User.Read',
   'Mail.Read',
-  'Tasks.Read',
 ] as const;
 
 /** Caminho do redirect (custom scheme do app: tirontasks://auth/microsoft). */
@@ -26,9 +26,11 @@ export const MS_REDIRECT_PATH = 'auth/microsoft';
 /** Campos mínimos de e-mail (reduz payload; sem baixar corpo completo). */
 export const MAIL_SELECT_FIELDS = 'id,subject,from,receivedDateTime,bodyPreview,webLink,isRead,flag';
 
-/** E-mails sinalizados (não-concluídos): filtro oficial Graph. */
+/** E-mails sinalizados (flagged): filtro oficial Graph.
+ * IMPORTANTE: NÃO combinar $filter (flag/flagStatus) com $orderby (receivedDateTime)
+ * — o Graph retorna HTTP 400 "InefficientFilter". Ordenamos no cliente. */
 export const FLAGGED_MAIL_QUERY =
-  `/me/messages?$filter=flag/flagStatus eq 'flagged'&$select=${MAIL_SELECT_FIELDS}&$top=50&$orderby=receivedDateTime desc`;
+  `/me/messages?$filter=flag/flagStatus eq 'flagged'&$select=${MAIL_SELECT_FIELDS}&$top=50`;
 
 /** Microsoft To Do. */
 export const TODO_LISTS_ENDPOINT = '/me/todo/lists';

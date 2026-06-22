@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Swipeable } from 'react-native-gesture-handler';
+import { Swipeable, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReorderableList, {
   reorderItems,
   useReorderableDrag,
@@ -154,8 +154,17 @@ function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: 
   onDelete: () => void;
 }) {
   const drag = useReorderableDrag();
+  // Long-press do gesture-handler (não o Pressable do RN core, que NÃO dispara
+  // dentro de gestos do gesture-handler na nova arquitetura). `runOnJS(true)` faz
+  // o callback rodar na JS thread para chamar `drag()` (função JS da lib).
+  // Convive com o swipe-to-delete: long-press (parado) e pan (movimento horizontal)
+  // são gestos distintos e não competem.
+  const longPress = useMemo(
+    () => Gesture.LongPress().minDuration(220).runOnJS(true).onStart(() => drag()),
+    [drag],
+  );
   return (
-    <Pressable onLongPress={drag} delayLongPress={220}>
+    <GestureDetector gesture={longPress}>
       <TaskItemSwipeable
         task={task}
         onToggle={onToggle}
@@ -163,7 +172,7 @@ function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: 
         onFavorite={onFavorite}
         onDelete={onDelete}
       />
-    </Pressable>
+    </GestureDetector>
   );
 }
 

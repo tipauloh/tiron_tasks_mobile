@@ -181,3 +181,6 @@ Tarefas futuras organizadas por fase e prioridade. Cada item deve gerar uma spec
 
 ### FIX-UX-001 ✅ (2026-06-22)
 Drag-drop via react-native-reorderable-list; separador `border`; TimeRangePicker mantém janela ao mudar início; EmptyState corrigido; M365 sync resiliente + diagnóstico (GraphError). Arquivos: `(tabs)/index.tsx`, `TaskItem.tsx`, `TimeRangePicker.tsx`, `utils/time.ts`, `_layout.tsx`, `modules/microsoft365/{graph/client,services/real-microsoft365.service,screens/MicrosoftConnectionScreen}`.
+
+### FIX-UX-002 ✅ (2026-06-22)
+Drag via Gesture.LongPress (gesture-handler); M365 e-mails corrigido (InefficientFilter) e reduzido a só e-mails (Tasks.Read removido); separador 1px; número do dia no calendário. Arquivos: `(tabs)/index.tsx`, `(tabs)/calendar.tsx`, `TaskItem.tsx`, `modules/microsoft365/{constants,graph/mail,services/real-microsoft365.service,components/MicrosoftAccountCard,screens/MicrosoftConnectionScreen}`.
