@@ -117,6 +117,61 @@ export async function graphGet<T = unknown>(path: string): Promise<T> {
 }
 
 /**
+ * PATCH autenticado a um endpoint do Graph. Mesma política de 401/throttling do
+ * GET. ÚNICO ponto de ESCRITA do módulo — usado só para atualizar o flag de um
+ * e-mail (flag/flagStatus). `body` é serializado como JSON.
+ */
+export async function graphPatch<T = unknown>(path: string, body: unknown): Promise<T> {
+  const url = toAbsoluteUrl(path);
+  let triedRefresh = false;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const accessToken = await getValidAccessToken();
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      return (await res.json().catch(() => ({}))) as T;
+    }
+
+    if (res.status === 401 && !triedRefresh) {
+      triedRefresh = true;
+      continue;
+    }
+    if ((res.status === 429 || res.status === 503) && attempt < MAX_RETRIES) {
+      await sleep(parseRetryAfter(res, attempt));
+      continue;
+    }
+    if (res.status === 401) {
+      throw new MicrosoftReauthRequiredError();
+    }
+
+    let graphCode: string | null = null;
+    try {
+      const b = (await res.json()) as { error?: { code?: string } };
+      graphCode = b?.error?.code ?? null;
+    } catch {
+      // corpo não-JSON; ignora
+    }
+    ms365Logger.error('microsoft_graph', 'erro no PATCH ao Graph', {
+      status: res.status,
+      graphCode,
+      endpoint: redactUrl(url),
+    });
+    throw new GraphError(res.status, graphCode);
+  }
+
+  throw new Error('Graph PATCH falhou após retries de throttling.');
+}
+
+/**
  * GET com paginação automática: segue @odata.nextLink e concatena `value`.
  * Use para coleções (mensagens, tarefas) sem delta.
  */

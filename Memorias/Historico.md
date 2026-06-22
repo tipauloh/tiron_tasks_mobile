@@ -142,3 +142,8 @@ Feature faseada (decisões do usuário: criação automática; concluir tarefa m
 - **Fase 1 — BACKEND (app_api), deployada no VPS:** colunas `tasks.external_email_id`/`external_provider`, `task_lists.is_system`, índice único parcial (idempotência) — migração idempotente no startup (`main.py _MIGRATE_EMAIL_LINK`). Endpoint `POST /api/v1/tasks/email-sync` (`task_service.sync_emails` cria lista de sistema "E-mail Sinalizados" + tarefas vinculadas, sem duplicar). Lista `is_system` protegida de delete/rename. Lógica validada por script direto + verificada em produção.
 - **Fase 2 — MOBILE (OTA):** `syncNow` espelha os e-mails via `taskApi.emailSync` → `POST /tasks/email-sync`; `ApiTaskSummary` expõe o vínculo; hooks invalidam tasks/task-lists; tela M365 simplificada (e-mails aparecem como tarefas na lista). Testes atualizados (236 verdes).
 - **Fase 3 (pendente):** concluir/reabrir tarefa vinculada → `PATCH /me/messages/{id}` flag complete/flagged (simétrico). Exige `Mail.ReadWrite` + reconectar.
+
+### FEAT-EMAIL-TASK Fase 3 — Concluir tarefa marca o e-mail (2026-06-22)
+- `MS_SCOPES`: Mail.Read → **Mail.ReadWrite** (única escrita: flag/flagStatus). `graphPatch` em `graph/client.ts`; `setEmailFlagComplete/Flagged` em `graph/mail.ts`.
+- `services/email-mirror.ts` `mirrorTaskCompletionToEmail` (best-effort, retorna needsReconnect). Ligado em `useToggleTaskStatus.onSuccess` (use-tasks.ts) via `res.data.external_email_id`/`external_provider`. Simétrico: concluir→'complete', reabrir→'flagged'. Falha por permissão → Alert orientando reconectar.
+- **Exige usuário Desconectar→Conectar** uma vez (token novo com Mail.ReadWrite). Entregue por OTA.

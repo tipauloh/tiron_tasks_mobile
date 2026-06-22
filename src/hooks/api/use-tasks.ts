@@ -1,6 +1,8 @@
+import { Alert } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { taskApi, type TaskListParams } from '@/infrastructure/api/task-api';
 import type { ApiTaskCreateRequest, ApiTaskReorderItem, ApiTaskUpdateRequest } from '@/infrastructure/api/types';
+import { mirrorTaskCompletionToEmail } from '@/modules/microsoft365/services/email-mirror';
 import { DASHBOARD_QUERY_KEY } from './use-dashboard';
 
 export const TASKS_QUERY_KEY = (filters?: TaskListParams) =>
@@ -117,10 +119,28 @@ export function useToggleTaskStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       taskApi.updateStatus(parseInt(id), status),
-    onSuccess: (_res, { id }) => {
+    onSuccess: (res, { id }) => {
       qc.invalidateQueries({ queryKey: ['tasks'] });
       qc.invalidateQueries({ queryKey: TASK_QUERY_KEY(id) });
       qc.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
+
+      // Tarefa vinculada a um e-mail do Microsoft 365: espelha a conclusão no
+      // flag do e-mail (best-effort, não bloqueia a UI). Se a sessão não tiver
+      // a permissão de escrita ainda, orienta o usuário a reconectar.
+      const t = res?.data;
+      if (t?.external_email_id && t.external_provider === 'microsoft') {
+        void mirrorTaskCompletionToEmail(
+          t.external_email_id,
+          t.status === 'completed',
+        ).then((r) => {
+          if (r.needsReconnect) {
+            Alert.alert(
+              'Microsoft 365',
+              'Para marcar o e-mail como concluído, reconecte sua conta: Perfil → Integrações → Microsoft 365 → Desconectar e Conectar.',
+            );
+          }
+        });
+      }
     },
   });
 }

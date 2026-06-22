@@ -10,14 +10,16 @@ export const MS_TOKEN_ENDPOINT = `${MS_AUTHORITY}/oauth2/v2.0/token`;
 
 export const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
-/** Escopos delegados — SOMENTE LEITURA (princípio do menor privilégio).
- * Escopo desta versão: identidade + e-mails sinalizados (To Do/Tarefas removido). */
+/** Escopos delegados (princípio do menor privilégio).
+ * `Mail.ReadWrite` é necessário APENAS para marcar o sinalizador do e-mail como
+ * concluído/pendente (PATCH em flag) quando a tarefa vinculada é concluída/reaberta.
+ * O app NUNCA envia, move, arquiva ou exclui e-mails — só altera o flag. */
 export const MS_SCOPES = [
   'openid',
   'profile',
   'offline_access',
   'User.Read',
-  'Mail.Read',
+  'Mail.ReadWrite',
 ] as const;
 
 /** Caminho do redirect (custom scheme do app: tirontasks://auth/microsoft). */
