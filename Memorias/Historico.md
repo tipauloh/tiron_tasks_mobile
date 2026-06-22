@@ -93,3 +93,8 @@
 - **Em Foco:** chip fixo `🎯 Em Foco` sempre primeiro na barra de listas do dashboard (`(tabs)/index.tsx`), cor roxa da marca. Lista VIRTUAL (não é task_list real) — `activeListId === '__focus__'` → `apiTasks` retorna `importantQuery.data` (favoritas). Reaproveita 100% o `is_favorite`/estrela: favoritar adiciona em Em Foco sem tirar da lista original. StatCards saem do foco ao clicar (filtros globais).
 - **Saudação:** nome grande não quebra mais em 2 linhas — `greetingRow` (flex row), nome com `numberOfLines={1}` + `flexShrink` + `ellipsizeMode tail`, e o 👋 num Text fixo sempre visível.
 - **Entrega:** OTA `d675d8c9-745d-4bfb-b02d-f39b5c885400` (ambos JS puro).
+
+### FOCO-002 — Em Foco usa favoritas reais + saudação inteira + ícone alvo (2026-06-21)
+- **Bug:** "Em Foco" usava `/important` (prioridade alta/crítica), não favoritas → favoritar não refletia. **Backend (app_api):** adicionado filtro `is_favorite` ao endpoint de listagem (`GET /tasks?is_favorite=true`) + `task_service.list_tasks`. Deployado e validado.
+- **Mobile:** "Em Foco" passou a usar `useTasks({ is_favorite: true })`. Ícone de favoritar trocado de estrela (★) para 🎯 (opacidade indica estado). Saudação com `adjustsFontSizeToFit` (nome inteiro em 1 linha, sem cortar).
+- **OTA:** `f993937b-9370-4d9c-a93a-96781d3729a4`.
