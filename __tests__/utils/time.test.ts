@@ -1,4 +1,11 @@
-import { minutesToTime, shiftEndOnStartChange } from '../../src/utils/time';
+import {
+  minutesToTime,
+  shiftEndOnStartChange,
+  applyStartChange,
+  applyEndChange,
+  recomputeDuration,
+  type TimeRangeState,
+} from '../../src/utils/time';
 
 describe('minutesToTime', () => {
   it('converte e faz clamp 00:00–23:59', () => {
@@ -27,5 +34,49 @@ describe('shiftEndOnStartChange (mantém a janela ao mudar o início)', () => {
     expect(shiftEndOnStartChange('09:00', '', '11:00')).toBeNull(); // sem fim
     expect(shiftEndOnStartChange('09:00', '10:30', '11')).toBeNull(); // novo início incompleto
     expect(shiftEndOnStartChange('10:00', '09:00', '11:00')).toBeNull(); // janela anterior inválida
+  });
+});
+
+describe('applyStartChange / applyEndChange (faixa início–fim com duração)', () => {
+  // Simula a digitação caractere a caractere, propagando o estado como o componente.
+  function type(state: TimeRangeState, seq: string[], which: 'start' | 'end') {
+    return seq.reduce(
+      (s, raw) => (which === 'start' ? applyStartChange(s, raw) : applyEndChange(s, raw)),
+      state,
+    );
+  }
+
+  it('REGRESSÃO: mantém a janela ao redigitar o início dígito a dígito', () => {
+    // Janela inicial 09:00–10:30 (90 min) já memorizada.
+    const initial: TimeRangeState = { start: '09:00', end: '10:30', duration: 90 };
+    // Usuário limpa o início e redigita 11:00 (passa por estados parciais inválidos).
+    const result = type(initial, ['', '1', '11', '110', '1100'], 'start');
+    expect(result.start).toBe('11:00');
+    expect(result.end).toBe('12:30'); // janela de 90 min preservada
+    expect(result.duration).toBe(90);
+  });
+
+  it('desloca quando o novo início chega completo de uma vez', () => {
+    const r = applyStartChange({ start: '08:00', end: '09:00', duration: 60 }, '1415');
+    expect(r.end).toBe('15:15');
+  });
+
+  it('mudar o fim atualiza a duração e não toca o início', () => {
+    const r = applyEndChange({ start: '09:00', end: '10:00', duration: 60 }, '1200');
+    expect(r.start).toBe('09:00');
+    expect(r.end).toBe('12:00');
+    expect(r.duration).toBe(180);
+  });
+
+  it('não cria fim quando não havia fim definido', () => {
+    const r = applyStartChange({ start: '', end: '', duration: null }, '0800');
+    expect(r.start).toBe('08:00');
+    expect(r.end).toBe('');
+  });
+
+  it('recomputeDuration mantém o valor anterior quando a janela é inválida', () => {
+    expect(recomputeDuration('09:00', '10:30', null)).toBe(90);
+    expect(recomputeDuration('09:0', '10:30', 90)).toBe(90); // parcial → mantém
+    expect(recomputeDuration('', '10:30', 90)).toBe(90); // vazio → mantém
   });
 });

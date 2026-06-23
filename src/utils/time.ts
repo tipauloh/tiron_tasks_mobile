@@ -64,3 +64,47 @@ export function shiftEndOnStartChange(
   const duration = e - prev;
   return minutesToTime(ns + duration);
 }
+
+/**
+ * Estado de uma faixa início–fim com a duração memorizada da última janela
+ * válida. A duração sobrevive à digitação incremental do início (estados
+ * parciais inválidos), permitindo deslocar o fim quando o novo início completa.
+ */
+export interface TimeRangeState {
+  start: string;
+  end: string;
+  duration: number | null; // minutos
+}
+
+/** Recalcula a duração quando início e fim formam uma janela válida; senão mantém. */
+export function recomputeDuration(
+  start: string,
+  end: string,
+  prev: number | null,
+): number | null {
+  const s = timeToMinutes(start);
+  const e = timeToMinutes(end);
+  if (s != null && e != null && e >= s) return e - s;
+  return prev;
+}
+
+/**
+ * Aplica uma mudança no INÍCIO (texto cru do input). Aplica a máscara, e — se o
+ * novo início for um horário completo e já houver um fim definido — desloca o fim
+ * mantendo a duração memorizada. O fim permanece independente do início.
+ */
+export function applyStartChange(state: TimeRangeState, raw: string): TimeRangeState {
+  const start = maskTime(raw);
+  const ns = timeToMinutes(start);
+  let end = state.end;
+  if (ns != null && state.end !== '' && state.duration != null) {
+    end = minutesToTime(ns + state.duration);
+  }
+  return { start, end, duration: recomputeDuration(start, end, state.duration) };
+}
+
+/** Aplica uma mudança no FIM (texto cru). Atualiza a duração memorizada. */
+export function applyEndChange(state: TimeRangeState, raw: string): TimeRangeState {
+  const end = maskTime(raw);
+  return { start: state.start, end, duration: recomputeDuration(state.start, end, state.duration) };
+}

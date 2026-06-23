@@ -1,10 +1,16 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { useTheme } from '@/hooks/use-theme';
-import { maskTime, isValidTime, isEndAfterStart, shiftEndOnStartChange } from '@/utils/time';
+import {
+  isValidTime,
+  isEndAfterStart,
+  recomputeDuration,
+  applyStartChange,
+  applyEndChange,
+} from '@/utils/time';
 
 interface Props {
   start: string; // 'HH:MM' ou ''
@@ -20,14 +26,29 @@ interface Props {
 export function TimeRangePicker({ start, end, onChangeStart, onChangeEnd }: Props) {
   const { theme } = useTheme();
 
+  // Memoriza a duração (em minutos) da última janela válida. Isso sobrevive à
+  // digitação incremental do início (estados parciais inválidos), que antes
+  // perdia a referência e impedia o deslocamento do fim. Toda a lógica vive em
+  // funções puras testáveis (applyStartChange/applyEndChange) em utils/time.
+  const durationRef = useRef<number | null>(null);
+  useEffect(() => {
+    durationRef.current = recomputeDuration(start, end, durationRef.current);
+  }, [start, end]);
+
   // Ao mudar o INÍCIO, desloca o FIM mantendo a janela de tempo definida antes
   // (ex.: 09:00–10:30 → muda início p/ 11:00 → fim vira 12:30). O FIM permanece
   // independente (mudar o fim não altera o início).
   function handleStartChange(raw: string) {
-    const masked = maskTime(raw);
-    const shiftedEnd = shiftEndOnStartChange(start, end, masked);
-    onChangeStart(masked);
-    if (shiftedEnd !== null && shiftedEnd !== end) onChangeEnd(shiftedEnd);
+    const next = applyStartChange({ start, end, duration: durationRef.current }, raw);
+    durationRef.current = next.duration;
+    onChangeStart(next.start);
+    if (next.end !== end) onChangeEnd(next.end);
+  }
+
+  function handleEndChange(raw: string) {
+    const next = applyEndChange({ start, end, duration: durationRef.current }, raw);
+    durationRef.current = next.duration;
+    onChangeEnd(next.end);
   }
 
   const startInvalid = !isValidTime(start);
@@ -74,7 +95,7 @@ export function TimeRangePicker({ start, end, onChangeStart, onChangeEnd }: Prop
           </Text>
           <TextInput
             value={end}
-            onChangeText={(t) => onChangeEnd(maskTime(t))}
+            onChangeText={handleEndChange}
             placeholder="HH:MM"
             placeholderTextColor={theme.colors.textTertiary}
             keyboardType="number-pad"
@@ -94,6 +115,7 @@ export function TimeRangePicker({ start, end, onChangeStart, onChangeEnd }: Prop
         {(start.length > 0 || end.length > 0) && (
           <TouchableOpacity
             onPress={() => {
+              durationRef.current = null;
               onChangeStart('');
               onChangeEnd('');
             }}
