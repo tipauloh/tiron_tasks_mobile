@@ -38,3 +38,47 @@ export interface Label {
   name: string;
   color: string;
 }
+
+// ─── Metas (Goals / OKRs) ────────────────────────────────────────────────────
+
+// Tipo de KPI de um Resultado-Chave. Define como o valor é formatado na UI.
+export type KpiType = 'number' | 'percent' | 'currency' | 'quantity' | 'time' | 'weight' | 'custom';
+
+export type GoalCategory =
+  | 'Saúde'
+  | 'Trabalho'
+  | 'Estudos'
+  | 'Finanças'
+  | 'Família'
+  | 'Pessoal'
+  | 'Outro';
+
+export type GoalStatus = 'on_track' | 'at_risk' | 'behind' | 'completed' | 'archived';
+
+// Tendência geral do painel de metas (calculada pelo backend).
+export type GoalTrend = 'up' | 'stable' | 'down';
+
+export interface KeyResult {
+  id: string;
+  title: string;
+  kpiType: KpiType;
+  unit?: string;
+  startValue: number;
+  currentValue: number;
+  targetValue: number;
+  weight: number;
+  isHighlight: boolean;
+  progress: number; // 0..1, calculado pelo backend
+}
+
+export interface Goal {
+  id: string;
+  title: string;
+  category: GoalCategory;
+  status: GoalStatus;
+  endDate?: string; // 'YYYY-MM-DD'
+  isPrimary: boolean;
+  weight: number;
+  progress: number; // 0..1, calculado pelo backend
+  keyResults: KeyResult[];
+}

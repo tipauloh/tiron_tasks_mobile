@@ -6,3 +6,5 @@ export * from './Input';
 export * from './BottomSheet';
 export * from './Checkbox';
 export * from './EmptyState';
+export * from './ProgressBar';
+export * from './CircularProgress';

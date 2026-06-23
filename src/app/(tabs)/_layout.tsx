@@ -41,6 +41,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="metas"
+        options={{
+          title: 'Metas',
+          tabBarIcon: () => <TabBarIcon emoji="🎯" />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',

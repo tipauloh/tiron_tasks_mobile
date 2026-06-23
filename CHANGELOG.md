@@ -14,6 +14,7 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 - Microsoft 365: sync resiliente e mensagem de erro real (diagnóstico). [FIX-UX-001]
 
 ### Added
+- Módulo METAS (Goals/OKRs): nova aba 🎯 com dashboard (score, meta principal, objetivos, KPIs, tendência), criação assistida e atualização rápida de KPI. [FEAT-METAS]
 - Tarefas: "Mover para outra lista" no swipe; seleção múltipla por long-press com excluir/mover em massa.
 - Microsoft 365: contador mostra só e-mails sinalizados em aberto; lembrete recorrente acompanha a recorrência (rótulo explícito).
 - Microsoft 365: suporte a MÚLTIPLAS contas simultâneas (conectar várias; cada e-mail/tarefa sabe sua conta; conclusão marca o flag na conta certa). [FEAT-EMAIL-TASK Etapa C]
