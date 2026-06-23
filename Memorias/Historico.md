@@ -188,3 +188,6 @@ As chaves do expo-secure-store só aceitam `[A-Za-z0-9._-]`; o separador `:` (ms
 
 ### FIX — Dashboard não listava pendentes com muitas tarefas (2026-06-22)
 O dashboard (index.tsx) busca pendentes + concluídas na MESMA query e filtra/agrupa no cliente, mas usava o limit padrão (20). Com 42 tarefas (19 pend + 23 concl de e-mail), as concluídas enchiam a 1ª página e as pendentes "sumiam". Fix: `DASHBOARD_LIMIT=500` no allQuery/focusQuery. (Contexto: as 23 conclusões eram e-mails distintos desmarcados no Outlook — reconciliação correta. Paginação real do dashboard fica p/ evolução futura.)
+
+### FEAT — Lembrete recorrente (segue a recorrência da tarefa) (2026-06-23)
+`scheduleTaskReminder(task, remindAtISO, recurrence?)` em lib/notifications.ts: se a tarefa é recorrente (intervalo 1), agenda notificação RECORRENTE nativa no mesmo horário do lembrete (startTime - offset) — DAILY / WEEKLY (um por by_weekday; 0=Dom→SDK weekday 1) / MONTHLY (day) / YEARLY (day+month). Intervalo>1 ou sem recorrência → DATE única. `cancelTaskReminders(taskId)` cancela via content.data.taskId (sem AsyncStorage). Integrado em create-task.tsx e task/[id].tsx (passa recurrence; cancela ao remover lembrete). OTA. Limitação v1: o backend guarda só a 1ª data do remind_at; re-agendar ao editar recorrência fica p/ depois.

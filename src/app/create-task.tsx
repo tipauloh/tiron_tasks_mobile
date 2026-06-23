@@ -133,7 +133,14 @@ export default function CreateTaskScreen() {
         const remindAtIso = toLocalIso(remindAtDate);
         try {
           await addReminder.mutateAsync({ taskId: created.data.id, remindAt: remindAtIso });
-          await scheduleTaskReminder({ id: created.data.id, title: title.trim() }, remindAtIso);
+          // Tarefa recorrente → lembrete recorrente (acompanha cada ocorrência).
+          await scheduleTaskReminder(
+            { id: created.data.id, title: title.trim() },
+            remindAtIso,
+            recurrence
+              ? { frequency: recurrence.frequency, interval: recurrence.interval, by_weekday: recurrence.by_weekday }
+              : null,
+          );
         } catch {
           // Não bloqueia a criação da tarefa por causa do lembrete.
         }

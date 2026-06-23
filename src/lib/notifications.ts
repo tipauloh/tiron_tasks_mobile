@@ -61,44 +61,95 @@ function formatHourLabel(d: Date): string {
  * Agenda uma notificação LOCAL para `remindAtISO` (ISO sem timezone, hora local).
  * Retorna o id da notificação agendada (para cancelar depois) ou null se não pôde agendar.
  */
+/** Recorrência da tarefa, para o lembrete acompanhar cada ocorrência. */
+export type ReminderRecurrence = {
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval: number;
+  by_weekday: number[] | null; // 0=Dom .. 6=Sáb
+};
+
+/**
+ * Agenda o lembrete local. Quando `recurrence` é informado e suportado
+ * nativamente (diária/semanal/mensal/anual com intervalo 1), agenda uma
+ * notificação RECORRENTE que dispara a cada ocorrência NO MESMO horário do
+ * lembrete (ex.: na hora do evento ou 15 min antes). Caso contrário, agenda uma
+ * única notificação na data. Para cancelar, use cancelTaskReminders(taskId).
+ */
 export async function scheduleTaskReminder(
   task: SchedulableTask,
   remindAtISO: string,
+  recurrence?: ReminderRecurrence | null,
 ): Promise<string | null> {
   if (isWeb) return null;
   const date = parseLocalIso(remindAtISO);
-  if (!date || date.getTime() <= Date.now()) {
-    // No passado — nada a agendar localmente (o backend ainda guarda o registro).
-    return null;
-  }
+  if (!date) return null;
   const granted = await ensureNotificationPermission();
   if (!granted) return null;
 
   configureNotificationHandler();
 
+  const T = Notifications.SchedulableTriggerInputTypes;
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const content = {
+    title: `🎯 Lembrete: ${task.title}`,
+    body: recurrence ? 'Lembrete recorrente' : `Agendado para ${formatHourLabel(date)}`,
+    data: { taskId: task.id } as Record<string, unknown>,
+  };
+  const sched = (trigger: Notifications.NotificationTriggerInput) =>
+    Notifications.scheduleNotificationAsync({ content, trigger }).catch(() => null);
+
   try {
-    const identifier = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `🎯 Lembrete: ${task.title}`,
-        body: `Agendado para ${formatHourLabel(date)}`,
-        data: { taskId: task.id },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date,
-      },
-    });
-    return identifier;
+    // Recorrência nativa (intervalo 1) — repete "sempre" no mesmo horário.
+    if (recurrence && recurrence.interval === 1) {
+      if (recurrence.frequency === 'daily') {
+        return await sched({ type: T.DAILY, hour, minute });
+      }
+      if (recurrence.frequency === 'weekly') {
+        const days = recurrence.by_weekday?.length ? recurrence.by_weekday : [date.getDay()];
+        let first: string | null = null;
+        for (const bw of days) {
+          // by_weekday 0=Dom..6=Sáb -> SDK weekday 1=Dom..7=Sáb.
+          const id = await sched({ type: T.WEEKLY, weekday: (bw % 7) + 1, hour, minute });
+          if (id && !first) first = id;
+        }
+        return first;
+      }
+      if (recurrence.frequency === 'monthly') {
+        return await sched({ type: T.MONTHLY, day: date.getDate(), hour, minute });
+      }
+      if (recurrence.frequency === 'yearly') {
+        return await sched({ type: T.YEARLY, day: date.getDate(), month: date.getMonth(), hour, minute });
+      }
+    }
+    // Sem recorrência (ou intervalo>1 / não suportado nativamente): uma vez, no futuro.
+    if (date.getTime() <= Date.now()) return null;
+    return await sched({ type: T.DATE, date });
   } catch {
     return null;
   }
 }
 
-/** Cancela uma notificação local agendada pelo identifier devolvido por scheduleTaskReminder. */
+/** Cancela uma notificação local pelo identifier. */
 export async function cancelTaskReminder(identifier: string): Promise<void> {
   if (isWeb || !identifier) return;
   try {
     await Notifications.cancelScheduledNotificationAsync(identifier);
+  } catch {
+    // ignore
+  }
+}
+
+/** Cancela TODAS as notificações locais de uma tarefa (recorrentes ou não) via data.taskId. */
+export async function cancelTaskReminders(taskId: string): Promise<void> {
+  if (isWeb) return;
+  try {
+    const all = await Notifications.getAllScheduledNotificationsAsync();
+    await Promise.all(
+      all
+        .filter((n) => (n.content?.data as { taskId?: string } | undefined)?.taskId === taskId)
+        .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => undefined)),
+    );
   } catch {
     // ignore
   }

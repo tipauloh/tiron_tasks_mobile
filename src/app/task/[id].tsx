@@ -30,7 +30,7 @@ import {
   toLocalIso,
   type ReminderOptionKey,
 } from '@/components/tasks/ReminderPicker';
-import { scheduleTaskReminder } from '@/lib/notifications';
+import { scheduleTaskReminder, cancelTaskReminders } from '@/lib/notifications';
 import { parseLocalIso } from '@/lib/notifications';
 import { isValidTime, isEndAfterStart } from '@/utils/time';
 import type { ApiRecurrence } from '@/infrastructure/api/types';
@@ -162,7 +162,15 @@ export default function TaskDetailScreen() {
     const remindAtIso = toLocalIso(remindAtDate);
     try {
       await addReminder.mutateAsync({ taskId: task.id, remindAt: remindAtIso });
-      await scheduleTaskReminder({ id: task.id, title: title.trim() || task.title }, remindAtIso);
+      // Se a tarefa é recorrente, o lembrete acompanha a recorrência (dispara a
+      // cada ocorrência no mesmo horário relativo).
+      await scheduleTaskReminder(
+        { id: task.id, title: title.trim() || task.title },
+        remindAtIso,
+        recurrence
+          ? { frequency: recurrence.frequency, interval: recurrence.interval, by_weekday: recurrence.by_weekday }
+          : null,
+      );
       setReminderKey('none');
       setReminderCustomDate(null);
       setReminderCustomTime('');
@@ -176,6 +184,8 @@ export default function TaskDetailScreen() {
       if (!task) return;
       try {
         await deleteReminder.mutateAsync({ reminderId, taskId: task.id });
+        // Cancela as notificações locais (recorrentes ou não) desta tarefa.
+        await cancelTaskReminders(String(task.id));
       } catch {
         Alert.alert('Erro', 'Não foi possível remover o lembrete.');
       }
