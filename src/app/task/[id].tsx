@@ -20,6 +20,7 @@ import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
 import type { TaskStatus, TaskPriority } from '@/domain/entities';
 import { useTask, useUpdateTask, useDeleteTask, useAddReminder, useDeleteReminder } from '@/hooks/api/use-tasks';
+import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { CalendarPicker } from '@/components/tasks/CalendarPicker';
 import { ListSelectorTrigger } from '@/components/tasks/ListSelector';
 import { TimeRangePicker } from '@/components/tasks/TimeRangePicker';
@@ -282,12 +283,10 @@ export default function TaskDetailScreen() {
 
           <View style={styles.section}>
             <SectionLabel label="Descrição" />
-            <Input
-              value={description}
-              onChangeText={(t) => { setDescription(t); setIsDirty(true); }}
-              placeholder="Adicione uma descrição..."
-              multiline
-              numberOfLines={4}
+            <RichTextEditor
+              key={task?.id ?? 'loading'}
+              initialHtml={task?.description ?? ''}
+              onChange={(html) => { setDescription(html); setIsDirty(true); }}
             />
           </View>
 

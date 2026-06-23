@@ -229,3 +229,10 @@ Antes as contas M365 + tokens viviam só no aparelho (SQLite + Secure Store); ao
 - **Backend:** tabela `integration_accounts` (tokens cifrados com `app/core/crypto.py`, chave `INTEGRATION_ENC_KEY`); endpoints `/api/v1/integrations/microsoft/accounts` (GET lista c/ tokens decifrados, PUT upsert, DELETE). Deployado VPS.
 - **Mobile:** `repositories/remote-account-api.ts`; service: push ao conectar e ao renovar token, DELETE ao desconectar, `restoreFromRemote(userId)` baixa contas no startup (use-auto-sync) — grava tokens só de contas inexistentes localmente (não sobrescreve tokens locais mais frescos). 4 testes novos.
 - **Chave Fernet** em ~/.tiron-integration-key (local) e no .env da API (VPS).
+
+### FEAT — Editor rich text na descrição da tarefa (v1.1.0, 2026-06-23)
+Campo de descrição (detalhe da tarefa) agora é um EDITOR VISUAL: negrito, itálico, sublinhado, lista (• e 1.), alinhamento (esq/centro/dir), limpar formatação — e REDIMENSIONÁVEL (alça para arrastar a altura). Decisão do usuário: editor visual completo (guarda HTML).
+- **Componente:** `src/components/ui/RichTextEditor.tsx` — WebView (react-native-webview 13.16.1) com `contenteditable` + `document.execCommand`, toolbar nativa (ScrollView horizontal), comunicação via injectJavaScript/postMessage, redimensionável (PanResponder). Tema claro/escuro. Construído sem lib de editor de terceiros (controle total, compat com RN 0.85).
+- **Integração:** só em `task/[id].tsx` (create-task não tem descrição; nenhum card exibe descrição). key={task.id} + initialHtml={task.description} (não-controlado).
+- **Armazenamento:** HTML no campo `description` (TEXT). Backend: `caldav_service._html_to_text` converte HTML→texto puro na saída CalDAV (Apple Lembretes mostra texto limpo c/ bullets). Deployado.
+- **⚠️ EXIGE BUILD** (webview é nativo): version 1.0.0→**1.1.0** (runtimeVersion isola dos builds antigos). NÃO sai por OTA para 1.0.0.

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tiron Tasks",
     "slug": "tiron-tasks",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "owner": "phkirchesch",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
