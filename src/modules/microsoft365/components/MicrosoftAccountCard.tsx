@@ -53,7 +53,7 @@ export function MicrosoftAccountCard({ account, emailCount, status }: Props) {
       </View>
 
       <View style={[styles.statsRow, { borderColor: theme.colors.border }]}>
-        <Stat value={emailCount} label="E-mails sinalizados" />
+        <Stat value={emailCount} label="Sinalizados em aberto" />
       </View>
 
       <MicrosoftSyncStatus status={status} lastSyncAt={account.lastSyncAt} />

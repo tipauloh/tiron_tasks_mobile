@@ -161,6 +161,25 @@ export class Microsoft365ItemRepository {
     ms365Logger.info('microsoft_cache', 'itens upsert', { count: items.length });
   }
 
+  /** Mantém no cache só os e-mails informados (de uma conta), removendo os que
+   * deixaram de estar sinalizados. Lista vazia → remove todos os e-mails da conta.
+   * Assim o contador reflete apenas os e-mails AINDA sinalizados/abertos. */
+  keepOnlyEmails(accountId: string, externalIds: string[]): void {
+    if (externalIds.length === 0) {
+      this.db.runSync(
+        `DELETE FROM ${MS365_TABLES.items} WHERE account_id = ? AND source_type = 'EMAIL'`,
+        [accountId],
+      );
+      return;
+    }
+    const placeholders = externalIds.map(() => '?').join(',');
+    this.db.runSync(
+      `DELETE FROM ${MS365_TABLES.items} WHERE account_id = ? AND source_type = 'EMAIL' ` +
+        `AND external_id NOT IN (${placeholders})`,
+      [accountId, ...externalIds],
+    );
+  }
+
   /** Remove itens filtrando por conta e/ou tipo (sem filtro = apaga tudo). */
   clearItems(options?: ClearItemsOptions): void {
     const { clause, params } = buildWhere(options);

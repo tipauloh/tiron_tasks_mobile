@@ -73,6 +73,7 @@ jest.mock('../../../src/modules/microsoft365/repositories', () => {
     microsoft365ItemRepository: {
       countItems: jest.fn(() => 0),
       upsertItems: jest.fn(),
+      keepOnlyEmails: jest.fn(),
       clearItems: jest.fn(),
       listItems: jest.fn(() => []),
     },

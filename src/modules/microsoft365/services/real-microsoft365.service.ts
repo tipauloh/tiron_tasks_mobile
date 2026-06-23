@@ -157,6 +157,12 @@ export class RealMicrosoft365Service implements Microsoft365Service {
             mapGraphMessageToItem(m, account.id, now),
           );
           microsoft365ItemRepository.upsertItems(emailItems);
+          // Cache reflete só os e-mails AINDA sinalizados: remove os que saíram
+          // da lista de flagged (desmarcados/concluídos) — o contador conta só os abertos.
+          microsoft365ItemRepository.keepOnlyEmails(
+            account.id,
+            emailItems.map((it) => it.externalId),
+          );
 
           // Espelha os e-mails como tarefas no backend (lista "E-mail Sinalizados").
           // Chamado SEMPRE (mesmo vazio) por conta, com reconcile=true para que o

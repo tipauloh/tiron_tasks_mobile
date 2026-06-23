@@ -49,6 +49,16 @@ const PRIORITY_OPTIONS: Array<{ value: TaskPriority; label: string; color: strin
   { value: 'critical', label: 'Crítica', color: Colors.priorityCritical, emoji: '🚨' },
 ];
 
+function recurrenceLabel(frequency: string): string {
+  switch (frequency) {
+    case 'daily': return 'diariamente';
+    case 'weekly': return 'semanalmente';
+    case 'monthly': return 'mensalmente';
+    case 'yearly': return 'anualmente';
+    default: return 'a cada ocorrência';
+  }
+}
+
 function SectionLabel({ label }: { label: string }) {
   const { theme } = useTheme();
   return <Text variant="label" style={[styles.sectionLabel, { color: theme.colors.textTertiary }]}>{label.toUpperCase()}</Text>;
@@ -360,14 +370,24 @@ export default function TaskDetailScreen() {
                       key={r.id}
                       style={[styles.reminderRow, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
                     >
-                      <Text style={{ fontSize: 16 }}>🔔</Text>
-                      <Text variant="body" style={{ flex: 1, color: theme.colors.text }}>
-                        {d
-                          ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) +
-                            ' às ' +
-                            `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-                          : r.remind_at}
-                      </Text>
+                      <Text style={{ fontSize: 16 }}>{recurrence ? '🔁' : '🔔'}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text variant="body" style={{ color: theme.colors.text }}>
+                          {recurrence ? 'Horário do lembrete: ' : ''}
+                          {d
+                            ? (recurrence
+                                ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+                                : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) +
+                                  ' às ' +
+                                  `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`)
+                            : r.remind_at}
+                        </Text>
+                        {recurrence && (
+                          <Text variant="caption" weight="semibold" style={{ color: Colors.primary }}>
+                            Lembrete recorrente — repete {recurrenceLabel(recurrence.frequency)}
+                          </Text>
+                        )}
+                      </View>
                       <TouchableOpacity
                         onPress={() => handleDeleteReminder(r.id)}
                         disabled={deleteReminder.isPending}
