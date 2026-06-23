@@ -210,3 +210,10 @@ Servidor CalDAV independente (container `tiron-caldav`) que sincroniza com Apple
 - **Mobile (OTA):** Perfil → Integrações → CalDAV (servidor synctasks.tiron.com.br, usuário, senha/token, copiar, regenerar, tutorial iPhone/DAVx5/Thunderbird). caldav-api/use-caldav.
 - **Docs:** openspec/CalDAV/01..06 (arquitetura, mapeamento, endpoints, auth, implantação, operação/troubleshooting). Secret compartilhado em ~/.tiron-caldav-secret (local).
 - **PENDENTE (usuário):** DNS synctasks.tiron.com.br → 72.62.138.144 (Traefik emite o cert ao ver o domínio) + testes reais em dispositivos (compat Apple é iterativa).
+
+### FEAT — Fuso horário por usuário (2026-06-23)
+Cada usuário escolhe seu fuso (Perfil → Preferências → Fuso horário); default America/Sao_Paulo.
+- **Regra:** horários das tarefas ficam CANÔNICOS em America/Sao_Paulo no banco (nada é reconvertido). Mudar o fuso só muda a EXIBIÇÃO — o par (data,hora) é um instante fixo em Brasília mostrado no fuso escolhido. Ex.: 08:00 criada em -3, troca p/ -4 → exibe 07:00.
+- **Backend:** `mobile_users.timezone` (migração `_CREATE_TIMEZONE`); UserProfile/UserMe + timezone; UserProfileUpdateRequest valida IANA (zoneinfo); user_service/auth_service retornam timezone. Deployado VPS.
+- **Mobile:** `src/utils/timezone.ts` (SYSTEM_TZ, conversão via Intl c/ DST + cross-midnight, displaySchedule/toCanonicalSchedule), hook `useTimezone`, `TimezoneSheet` (lista curada BR+intl). Conversão na BORDA: leitura (index/calendar apiTaskToLegacy: canônico→fuso) e escrita/carga (create-task, task/[id]: fuso→canônico). 9 testes em __tests__/utils/timezone.test.ts.
+- **Limitação:** lembretes (expo-notifications) assumem device no mesmo fuso configurado.

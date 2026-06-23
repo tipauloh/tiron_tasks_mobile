@@ -16,7 +16,10 @@ import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
 import { useAuthStore } from '@/store/auth-store';
-import { useProfile } from '@/hooks/api/use-profile';
+import { useProfile, useUpdateProfile } from '@/hooks/api/use-profile';
+import { useTimezone } from '@/hooks/use-timezone';
+import { timezoneLabel, formatOffset } from '@/utils/timezone';
+import { TimezoneSheet } from '@/components/profile/TimezoneSheet';
 import { APP_VERSION } from '@/lib/config';
 import { checkAndApplyUpdate, getUpdateInfo } from '@/lib/updates';
 
@@ -79,6 +82,19 @@ export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const { data: profile } = useProfile();
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [showTzSheet, setShowTzSheet] = useState(false);
+  const currentTz = useTimezone();
+  const updateProfile = useUpdateProfile();
+
+  function handleSelectTz(id: string) {
+    setShowTzSheet(false);
+    if (id !== currentTz) {
+      updateProfile.mutate(
+        { timezone: id },
+        { onError: () => Alert.alert('Erro', 'Não foi possível alterar o fuso horário.') },
+      );
+    }
+  }
 
   const updateInfo = getUpdateInfo();
   const shortBuild = updateInfo.updateId ? updateInfo.updateId.slice(0, 7) : null;
@@ -158,6 +174,17 @@ export default function ProfileScreen() {
           />
         </Card>
 
+        {/* Preferências */}
+        <Card style={styles.section}>
+          <Text variant="label" secondary style={styles.sectionTitle}>PREFERÊNCIAS</Text>
+          <RowItem
+            icon="🌎"
+            label="Fuso horário"
+            value={`${timezoneLabel(currentTz)} (${formatOffset(currentTz)})`}
+            onPress={() => setShowTzSheet(true)}
+          />
+        </Card>
+
         {/* Integrações */}
         <Card style={styles.section}>
           <Text variant="label" secondary style={styles.sectionTitle}>INTEGRAÇÕES</Text>
@@ -221,6 +248,12 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </Card>
       </ScrollView>
+      <TimezoneSheet
+        visible={showTzSheet}
+        currentTz={currentTz}
+        onSelect={handleSelectTz}
+        onClose={() => setShowTzSheet(false)}
+      />
     </SafeAreaView>
   );
 }

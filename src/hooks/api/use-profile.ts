@@ -25,7 +25,11 @@ export function useUpdateProfile() {
       qc.setQueryData(PROFILE_QUERY_KEY, res.data);
       // Sync name/email into auth store so header shows updated name
       if (updateUser) {
-        updateUser({ name: res.data.name, email: res.data.email });
+        updateUser({
+          name: res.data.name,
+          email: res.data.email,
+          timezone: res.data.timezone,
+        });
       }
     },
   });

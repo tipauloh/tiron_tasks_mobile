@@ -14,6 +14,7 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 - Microsoft 365: sync resiliente e mensagem de erro real (diagnóstico). [FIX-UX-001]
 
 ### Added
+- Fuso horário por usuário (Perfil → Preferências): exibe os horários das tarefas no fuso escolhido, mantendo o instante. [FEAT-TZ]
 - Integração CalDAV (Perfil → Integrações → CalDAV): sincroniza tarefas com Apple Lembretes/Calendário, Outlook, Thunderbird e DAVx5 via servidor synctasks.tiron.com.br. [FEAT-CALDAV]
 - Módulo METAS (Goals/OKRs): nova aba 🎯 com dashboard (score, meta principal, objetivos, KPIs, tendência), criação assistida e atualização rápida de KPI. [FEAT-METAS]
 - Tarefas: "Mover para outra lista" no swipe; seleção múltipla por long-press com excluir/mover em massa.

@@ -15,6 +15,7 @@ export interface AuthUser {
   id: number;
   name: string;
   email: string;
+  timezone: string;
   roles: string[];
   permissions: string[];
 }
@@ -33,7 +34,7 @@ interface AuthState {
   loginWithApple: (identityToken: string, name: string | null) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
-  updateUser: (partial: Partial<Pick<AuthUser, 'name' | 'email'>>) => void;
+  updateUser: (partial: Partial<Pick<AuthUser, 'name' | 'email' | 'timezone'>>) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {

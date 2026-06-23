@@ -32,6 +32,8 @@ import {
 import { useAddReminder } from '@/hooks/api/use-tasks';
 import { scheduleTaskReminder } from '@/lib/notifications';
 import { isValidTime, isEndAfterStart } from '@/utils/time';
+import { useTimezone } from '@/hooks/use-timezone';
+import { toCanonicalSchedule } from '@/utils/timezone';
 import type { ApiRecurrence } from '@/infrastructure/api/types';
 
 type DateShortcut = 'today' | 'tomorrow' | 'custom' | 'none';
@@ -82,6 +84,7 @@ export default function CreateTaskScreen() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const tz = useTimezone();
   const [recurrence, setRecurrence] = useState<ApiRecurrence | null>(null);
   const [reminderKey, setReminderKey] = useState<ReminderOptionKey>('none');
   const [reminderCustomDate, setReminderCustomDate] = useState<Date | null>(null);
@@ -116,15 +119,20 @@ export default function CreateTaskScreen() {
     }
     const dueDate = getDueDate(dateShortcut, customDate);
     const remindAtDate = resolveRemindAtDate(dueDate);
+    // O usuário digita no fuso dele; converte para o canônico (Brasília) ao salvar.
+    const canon = toCanonicalSchedule(
+      { dueDate, startTime: startTime || undefined, endTime: endTime || undefined },
+      tz,
+    );
     try {
       const created = await createTask.mutateAsync({
         title: title.trim(),
         status: 'not_started',
         priority,
-        due_date: dueDate,
+        due_date: canon.dueDate,
         task_list_id: selectedListId ? parseInt(selectedListId) : undefined,
-        start_time: startTime || null,
-        end_time: endTime || null,
+        start_time: canon.startTime || null,
+        end_time: canon.endTime || null,
         recurrence,
         is_favorite: false,
       });

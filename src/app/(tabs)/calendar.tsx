@@ -22,6 +22,8 @@ import { Spacing, Radius } from '@/constants/spacing';
 import { useAllTasksForCalendar, useDeleteTask, useToggleTaskStatus, useToggleFavorite } from '@/hooks/api/use-tasks';
 import type { ApiTaskSummary } from '@/infrastructure/api/types';
 import { expandRecurrence } from '@/utils/recurrence';
+import { useTimezone } from '@/hooks/use-timezone';
+import { displaySchedule, SYSTEM_TZ } from '@/utils/timezone';
 
 // ─── Calendar constants ───────────────────────────────────────────────────────
 
@@ -59,15 +61,23 @@ function buildCalendarGrid(year: number, month: number): Array<Date | null> {
   return cells;
 }
 
-function apiTaskToLegacy(t: ApiTaskSummary) {
+function apiTaskToLegacy(t: ApiTaskSummary, tz: string = SYSTEM_TZ) {
+  const sched = displaySchedule(
+    {
+      dueDate: t.due_date ?? undefined,
+      startTime: t.start_time ?? undefined,
+      endTime: t.end_time ?? undefined,
+    },
+    tz,
+  );
   return {
     id: String(t.id),
     title: t.title,
     status: t.status as 'not_started' | 'in_progress' | 'completed' | 'cancelled',
     priority: t.priority as 'low' | 'normal' | 'high' | 'critical',
-    dueDate: t.due_date ?? undefined,
-    startTime: t.start_time ?? undefined,
-    endTime: t.end_time ?? undefined,
+    dueDate: sched.dueDate,
+    startTime: sched.startTime,
+    endTime: sched.endTime,
     isRecurring: !!t.recurrence,
     isFavorite: t.is_favorite,
     position: 0,
@@ -151,7 +161,8 @@ export default function CalendarScreen() {
   }, [allTasks, displayYear, displayMonth]);
 
   const selectedDateStr = toDateStr(selectedDate);
-  const selectedTasks = (tasksByDate.get(selectedDateStr) ?? []).map(apiTaskToLegacy);
+  const tz = useTimezone();
+  const selectedTasks = (tasksByDate.get(selectedDateStr) ?? []).map((t) => apiTaskToLegacy(t, tz));
   const rows = useMemo(() => buildTaskRows(selectedTasks, showCompleted), [selectedTasks, showCompleted]);
 
   function prevMonth() {

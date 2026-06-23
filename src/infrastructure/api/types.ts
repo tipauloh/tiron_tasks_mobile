@@ -30,6 +30,7 @@ export interface UserMeResponse {
   id: number;
   name: string;
   email: string;
+  timezone: string;
   roles: string[];
   permissions: string[];
 }

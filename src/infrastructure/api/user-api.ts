@@ -7,6 +7,7 @@ export interface UserProfile {
   email: string;
   email_verified_at: string | null;
   created_at: string | null;
+  timezone: string;
 }
 
 export interface UpdateProfileRequest {
@@ -14,6 +15,7 @@ export interface UpdateProfileRequest {
   email?: string;
   password?: string;
   current_password?: string;
+  timezone?: string;
 }
 
 export const userApi = {

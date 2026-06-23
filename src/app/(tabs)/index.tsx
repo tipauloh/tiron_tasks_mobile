@@ -41,6 +41,8 @@ import { useAuthStore } from '@/store/auth-store';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import type { ApiTaskSummary, ApiTaskListFull } from '@/infrastructure/api/types';
+import { useTimezone } from '@/hooks/use-timezone';
+import { displaySchedule, SYSTEM_TZ } from '@/utils/timezone';
 
 type ViewMode = 'all' | 'today' | 'upcoming' | 'overdue' | 'favorites' | 'completed';
 
@@ -74,15 +76,23 @@ function getGreeting(): string {
   return 'Boa noite';
 }
 
-function apiTaskToLegacy(t: ApiTaskSummary) {
+function apiTaskToLegacy(t: ApiTaskSummary, tz: string = SYSTEM_TZ) {
+  const sched = displaySchedule(
+    {
+      dueDate: t.due_date ?? undefined,
+      startTime: t.start_time ?? undefined,
+      endTime: t.end_time ?? undefined,
+    },
+    tz,
+  );
   return {
     id: String(t.id),
     title: t.title,
     status: t.status as 'not_started' | 'in_progress' | 'completed' | 'cancelled',
     priority: t.priority as 'low' | 'normal' | 'high' | 'critical',
-    dueDate: t.due_date ?? undefined,
-    startTime: t.start_time ?? undefined,
-    endTime: t.end_time ?? undefined,
+    dueDate: sched.dueDate,
+    startTime: sched.startTime,
+    endTime: sched.endTime,
     isRecurring: !!t.recurrence,
     isFavorite: t.is_favorite,
     position: 0,
@@ -436,7 +446,8 @@ export default function TasksScreen() {
     }
   }, [isSearching, debouncedSearch, isFocus, viewMode, allQuery.data, myDayQuery.data, importantQuery.data, upcomingQuery.data, focusQuery.data]);
 
-  const tasks = apiTasks.map(apiTaskToLegacy);
+  const tz = useTimezone();
+  const tasks = apiTasks.map((t) => apiTaskToLegacy(t, tz));
 
   // Reordenar (arraste por long-press, sempre ativo) só faz sentido em listas
   // estáveis: "Todas" (sem filtro) ou uma lista específica — não em buscas nem em

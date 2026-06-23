@@ -33,6 +33,8 @@ import {
 import { scheduleTaskReminder, cancelTaskReminders } from '@/lib/notifications';
 import { parseLocalIso } from '@/lib/notifications';
 import { isValidTime, isEndAfterStart } from '@/utils/time';
+import { useTimezone } from '@/hooks/use-timezone';
+import { displaySchedule, toCanonicalSchedule } from '@/utils/timezone';
 import type { ApiRecurrence } from '@/infrastructure/api/types';
 
 const STATUS_OPTIONS: Array<{ value: TaskStatus; label: string; color: string; emoji: string }> = [
@@ -70,6 +72,7 @@ export default function TaskDetailScreen() {
   const { theme } = useTheme();
 
   const { data: task, isLoading } = useTask(id ?? '');
+  const tz = useTimezone();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const addReminder = useAddReminder();
@@ -96,15 +99,24 @@ export default function TaskDetailScreen() {
       setDescription(task.description ?? '');
       setStatus(task.status as TaskStatus);
       setPriority(task.priority as TaskPriority);
-      if (task.due_date) {
-        const parts = task.due_date.split('-');
+      // Horários vêm canônicos (Brasília) da API → exibe no fuso do usuário.
+      const sched = displaySchedule(
+        {
+          dueDate: task.due_date ?? undefined,
+          startTime: task.start_time ?? undefined,
+          endTime: task.end_time ?? undefined,
+        },
+        tz,
+      );
+      if (sched.dueDate) {
+        const parts = sched.dueDate.split('-');
         setDueDate(new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
       } else {
         setDueDate(null);
       }
       setListId(task.task_list ? String(task.task_list.id) : undefined);
-      setStartTime(task.start_time ?? '');
-      setEndTime(task.end_time ?? '');
+      setStartTime(sched.startTime ?? '');
+      setEndTime(sched.endTime ?? '');
       setRecurrence(task.recurrence ?? null);
       setIsDirty(false);
     }
@@ -119,6 +131,14 @@ export default function TaskDetailScreen() {
       Alert.alert('Horário inválido', 'Verifique os horários: use HH:MM e o fim deve ser ≥ o início.');
       return;
     }
+    const dueStr = dueDate
+      ? `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}-${String(dueDate.getDate()).padStart(2, '0')}`
+      : undefined;
+    // Converte do fuso do usuário de volta para o canônico (Brasília) ao salvar.
+    const canon = toCanonicalSchedule(
+      { dueDate: dueStr, startTime: startTime || undefined, endTime: endTime || undefined },
+      tz,
+    );
     await updateTask.mutateAsync({
       id: String(task.id),
       data: {
@@ -126,18 +146,16 @@ export default function TaskDetailScreen() {
         description: description.trim() || undefined,
         status,
         priority,
-        due_date: dueDate
-          ? `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}-${String(dueDate.getDate()).padStart(2, '0')}`
-          : null as unknown as undefined,
+        due_date: (canon.dueDate ?? (null as unknown as undefined)),
         task_list_id: listId ? parseInt(listId) : (null as unknown as undefined),
-        start_time: startTime || null,
-        end_time: endTime || null,
+        start_time: canon.startTime || null,
+        end_time: canon.endTime || null,
         recurrence,
       },
     });
     setIsDirty(false);
     router.back();
-  }, [task, title, description, status, priority, dueDate, listId, startTime, endTime, recurrence, timeValid, updateTask, router]);
+  }, [task, title, description, status, priority, dueDate, listId, startTime, endTime, recurrence, timeValid, updateTask, router, tz]);
 
   const handleDelete = useCallback(() => {
     if (!task) return;
