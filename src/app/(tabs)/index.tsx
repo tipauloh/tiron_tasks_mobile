@@ -495,6 +495,14 @@ export default function TasksScreen() {
   const emailList = useMemo(() => taskLists.find((l) => l.is_system), [taskLists]);
   const isEmailListActive = !!emailList && activeListId === String(emailList.id);
 
+  // Lista compartilhada selecionada → outros membros podem alterá-la a qualquer
+  // momento. Detecta para verificar atualizações periodicamente (ver useEffect).
+  const activeList = useMemo(
+    () => taskLists.find((l) => String(l.id) === activeListId),
+    [taskLists, activeListId],
+  );
+  const isSharedListActive = !!activeList?.shared;
+
   // Ressincroniza o Microsoft 365 e atualiza tarefas/listas. Best-effort
   // (sem conta conectada ou falha de rede → silencioso; o sync re-tenta).
   const syncEmailList = useCallback(async () => {
@@ -522,6 +530,22 @@ export default function TasksScreen() {
     const interval = setInterval(() => void syncEmailList(), 10_000);
     return () => clearInterval(interval);
   }, [isEmailListActive, syncEmailList]);
+
+  // Busca novas tarefas/alterações da lista compartilhada (feitas por outros
+  // membros no servidor). Diferente do e-mail, não há sync externo — basta
+  // reconsultar a API.
+  const syncSharedList = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['tasks'] });
+    qc.invalidateQueries({ queryKey: ['task-lists'] });
+  }, [qc]);
+
+  // Enquanto uma lista COMPARTILHADA está aberta, verifica atualizações a cada
+  // 12s, semelhante à lista de e-mails sinalizados.
+  useEffect(() => {
+    if (!isSharedListActive) return;
+    const interval = setInterval(() => syncSharedList(), 12_000);
+    return () => clearInterval(interval);
+  }, [isSharedListActive, syncSharedList]);
 
   const handleDelete = useCallback((id: string, title: string) => {
     Alert.alert('Excluir tarefa', `"${title}" será removida permanentemente.`, [

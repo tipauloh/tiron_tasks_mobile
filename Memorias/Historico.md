@@ -220,3 +220,6 @@ Cada usuário escolhe seu fuso (Perfil → Preferências → Fuso horário); def
 
 ### FIX — Deslocar fim ao mudar início (janela) (2026-06-23)
 A função que mantinha a duração ao alterar o horário de início não funcionava na digitação real: `shiftEndOnStartChange` recebia o `prevStart` do estado controlado, que durante a digitação incremental ficava parcial/inválido quando o novo início completava → retornava null e nunca deslocava o fim. Corrigido memorizando a DURAÇÃO da última janela válida (durationRef + recomputeDuration) e aplicando-a quando o novo início completa. Lógica extraída p/ funções puras `applyStartChange`/`applyEndChange`/`recomputeDuration` em utils/time.ts. Testes de regressão (digitação dígito a dígito) em time.test.ts.
+
+### FEAT — Polling de lista compartilhada selecionada (2026-06-23)
+Quando uma lista COMPARTILHADA (shared=true: tem membros ou foi compartilhada com o usuário) está selecionada na aba Tarefas, o app verifica atualizações a cada 12s (invalida ['tasks']+['task-lists']), pegando mudanças feitas por outros membros — semelhante ao polling da lista de e-mails sinalizados (10s). Em (tabs)/index.tsx: activeList/isSharedListActive + syncSharedList + useEffect com setInterval. Backend já retorna `shared` (task_lists.py).
