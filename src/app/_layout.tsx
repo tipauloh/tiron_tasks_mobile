@@ -114,6 +114,10 @@ export default function RootLayout() {
           options={{ presentation: 'card', animation: 'slide_from_right' }}
         />
         <Stack.Screen
+          name="caldav"
+          options={{ presentation: 'card', animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
           name="create-meta"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />

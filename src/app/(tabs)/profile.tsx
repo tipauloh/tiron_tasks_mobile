@@ -167,6 +167,12 @@ export default function ProfileScreen() {
             value="Tarefas e e-mails sinalizados"
             onPress={() => router.push('/microsoft365' as never)}
           />
+          <RowItem
+            icon="📆"
+            label="CalDAV"
+            value="Calendário e Lembretes (iPhone, Android)"
+            onPress={() => router.push('/caldav' as never)}
+          />
         </Card>
 
         {/* Info */}
