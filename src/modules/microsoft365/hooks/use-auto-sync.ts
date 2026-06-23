@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { SYNC_INTERVAL_MS } from '../constants';
 import { microsoft365Service, realMicrosoft365Service } from '../services';
 import { ms365Logger } from '../utils/logger';
+import { useAuthStore } from '@/store/auth-store';
 
 /** Decide se deve sincronizar agora (conectado + intervalo vencido). */
 async function shouldSync(): Promise<boolean> {
@@ -31,6 +32,7 @@ async function shouldSync(): Promise<boolean> {
 export function useMicrosoft365AutoSync(): void {
   const qc = useQueryClient();
   const inFlight = useRef(false);
+  const userId = useAuthStore((s) => s.user?.id);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,8 +59,24 @@ export function useMicrosoft365AutoSync(): void {
       }
     };
 
+    // Restaura contas conectadas em OUTRO dispositivo (baixa metadados + tokens
+    // do backend) e então sincroniza. Best-effort — sem conta/rede é silencioso.
+    const restoreThenSync = async () => {
+      if (userId != null) {
+        try {
+          const restored = await realMicrosoft365Service.restoreFromRemote(String(userId));
+          if (restored > 0 && !cancelled) {
+            qc.invalidateQueries({ queryKey: ['ms365'] });
+          }
+        } catch {
+          // best-effort
+        }
+      }
+      await runIfDue();
+    };
+
     // 1) Ao abrir o app.
-    void runIfDue();
+    void restoreThenSync();
 
     // 2) A cada intervalo (o guard interno evita sync prematuro).
     const interval = setInterval(() => void runIfDue(), SYNC_INTERVAL_MS);
@@ -73,5 +91,5 @@ export function useMicrosoft365AutoSync(): void {
       clearInterval(interval);
       sub.remove();
     };
-  }, [qc]);
+  }, [qc, userId]);
 }

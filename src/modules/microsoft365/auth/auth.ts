@@ -110,7 +110,7 @@ export async function persistTokensForAccount(
   await persistTokens(accountId, tokens);
 }
 
-async function readStoredTokens(accountId: string): Promise<StoredTokens | null> {
+export async function readStoredTokens(accountId: string): Promise<StoredTokens | null> {
   const accessToken = await SecureStore.getItemAsync(accessKey(accountId));
   if (!accessToken) return null;
   const refreshToken = await SecureStore.getItemAsync(refreshKey(accountId));

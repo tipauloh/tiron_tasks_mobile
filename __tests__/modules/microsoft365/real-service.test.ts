@@ -26,12 +26,26 @@ jest.mock('../../../src/modules/microsoft365/auth', () => {
     })),
     signOut: jest.fn(async (_accountId: string) => {}),
     getValidAccessToken: jest.fn(async (_accountId: string) => 'AT'),
-    getTokenExpiresAt: jest.fn(async (_accountId: string) => Date.now() + 3600_000),
+    getTokenExpiresAt: jest.fn(async (_accountId: string) => 1_000),
     hasStoredSession: jest.fn(async (_accountId: string) => true),
     persistTokensForAccount: jest.fn(async (_accountId: string, _tokens: any) => {}),
+    readStoredTokens: jest.fn(async (_accountId: string) => ({
+      accessToken: 'AT',
+      refreshToken: 'RT',
+      expiresAt: 1_000,
+    })),
     MicrosoftReauthRequiredError,
   };
 });
+
+// Sincronização das contas com o backend (multi-dispositivo) mockada.
+jest.mock('../../../src/modules/microsoft365/repositories/remote-account-api', () => ({
+  remoteAccountApi: {
+    list: jest.fn(async () => ({ data: [] })),
+    upsert: jest.fn(async () => ({ data: {} })),
+    remove: jest.fn(async () => ({ message: 'ok' })),
+  },
+}));
 
 // graph mockado
 jest.mock('../../../src/modules/microsoft365/graph', () => ({
@@ -246,6 +260,62 @@ describe('RealMicrosoft365Service.disconnect', () => {
     expect(auth.signOut).toHaveBeenCalledWith('acc-1');
     expect(accountRepo.clearAccount).toHaveBeenCalledWith('acc-1');
     expect(itemRepo.clearItems).not.toHaveBeenCalled();
+  });
+});
+
+describe('RealMicrosoft365Service — sincronização entre dispositivos', () => {
+  const { remoteAccountApi } = require('../../../src/modules/microsoft365/repositories/remote-account-api');
+
+  it('connect envia a conta + tokens ao backend (upsert)', async () => {
+    const service = new RealMicrosoft365Service();
+    await service.connect('user-9');
+    expect(remoteAccountApi.upsert).toHaveBeenCalledWith(
+      'ms-user-1',
+      expect.objectContaining({ account_id: 'ms-user-1', access_token: 'AT', refresh_token: 'RT' }),
+    );
+  });
+
+  it('disconnect remove a conta do backend', async () => {
+    const service = new RealMicrosoft365Service();
+    await service.disconnect('acc-1', false);
+    expect(remoteAccountApi.remove).toHaveBeenCalledWith('acc-1');
+  });
+
+  it('restoreFromRemote grava localmente contas conectadas em outro dispositivo', async () => {
+    remoteAccountApi.list.mockResolvedValueOnce({
+      data: [
+        {
+          account_id: 'remota-1',
+          email: 'r@x.com',
+          display_name: 'Remota',
+          access_token: 'AT2',
+          refresh_token: 'RT2',
+          token_expires_at: 1_000,
+        },
+      ],
+    });
+    const service = new RealMicrosoft365Service();
+    const restored = await service.restoreFromRemote('user-9');
+
+    expect(restored).toBe(1);
+    expect(auth.persistTokensForAccount).toHaveBeenCalledWith(
+      'remota-1',
+      expect.objectContaining({ accessToken: 'AT2', refreshToken: 'RT2' }),
+    );
+    expect(holder.accounts.map((a) => a.id)).toContain('remota-1');
+  });
+
+  it('restoreFromRemote NÃO sobrescreve tokens de conta já existente localmente', async () => {
+    holder.accounts = [{ id: 'remota-1', userId: 'user-9', lastSyncAt: 5, createdAt: 1 }];
+    remoteAccountApi.list.mockResolvedValueOnce({
+      data: [
+        { account_id: 'remota-1', email: 'r@x.com', display_name: 'Remota', access_token: 'AT_OLD', refresh_token: 'RT_OLD', token_expires_at: 1 },
+      ],
+    });
+    const service = new RealMicrosoft365Service();
+    await service.restoreFromRemote('user-9');
+    // já existia → não regrava tokens locais (podem estar mais frescos)
+    expect(auth.persistTokensForAccount).not.toHaveBeenCalled();
   });
 });
 

@@ -223,3 +223,9 @@ A função que mantinha a duração ao alterar o horário de início não funcio
 
 ### FEAT — Polling de lista compartilhada selecionada (2026-06-23)
 Quando uma lista COMPARTILHADA (shared=true: tem membros ou foi compartilhada com o usuário) está selecionada na aba Tarefas, o app verifica atualizações a cada 12s (invalida ['tasks']+['task-lists']), pegando mudanças feitas por outros membros — semelhante ao polling da lista de e-mails sinalizados (10s). Em (tabs)/index.tsx: activeList/isSharedListActive + syncSharedList + useEffect com setInterval. Backend já retorna `shared` (task_lists.py).
+
+### FEAT — Contas Microsoft sincronizadas entre dispositivos (2026-06-23)
+Antes as contas M365 + tokens viviam só no aparelho (SQLite + Secure Store); ao logar em outro device, nada aparecia. Agora as contas + tokens (CIFRADOS, Fernet) são sincronizados via backend (decisão do usuário: sincronização total).
+- **Backend:** tabela `integration_accounts` (tokens cifrados com `app/core/crypto.py`, chave `INTEGRATION_ENC_KEY`); endpoints `/api/v1/integrations/microsoft/accounts` (GET lista c/ tokens decifrados, PUT upsert, DELETE). Deployado VPS.
+- **Mobile:** `repositories/remote-account-api.ts`; service: push ao conectar e ao renovar token, DELETE ao desconectar, `restoreFromRemote(userId)` baixa contas no startup (use-auto-sync) — grava tokens só de contas inexistentes localmente (não sobrescreve tokens locais mais frescos). 4 testes novos.
+- **Chave Fernet** em ~/.tiron-integration-key (local) e no .env da API (VPS).

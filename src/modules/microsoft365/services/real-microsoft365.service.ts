@@ -19,10 +19,13 @@ import {
   getTokenExpiresAt,
   hasStoredSession,
   persistTokensForAccount,
+  readStoredTokens,
   MicrosoftReauthRequiredError,
+  type StoredTokens,
 } from '../auth';
 import type { MicrosoftAccount, Microsoft365Item, SyncResult } from '../types';
 import { taskApi } from '@/infrastructure/api/task-api';
+import { remoteAccountApi } from '../repositories/remote-account-api';
 import { ms365Logger } from '../utils/logger';
 import type { ConnectionState, Microsoft365Service } from './microsoft365.service';
 
@@ -77,6 +80,9 @@ export class RealMicrosoft365Service implements Microsoft365Service {
       updatedAt: now,
     };
     microsoftAccountRepository.saveAccount(account);
+    // Sincroniza a conta + tokens (cifrados) com o backend para que outros
+    // dispositivos da mesma conta Tiron a recebam.
+    await this.pushAccountToRemote(account, tok);
     ms365Logger.info('microsoft_auth', 'conta conectada', { accountId: account.id });
 
     // 5) Sync inicial só dessa conta — não falha o connect se o sync falhar.
@@ -95,6 +101,12 @@ export class RealMicrosoft365Service implements Microsoft365Service {
   async disconnect(accountId: string, removeData: boolean): Promise<void> {
     await signOut(accountId);
     microsoftAccountRepository.clearAccount(accountId);
+    // Remove do backend para não reaparecer em outros dispositivos.
+    try {
+      await remoteAccountApi.remove(accountId);
+    } catch {
+      // best-effort
+    }
     if (removeData) {
       microsoft365ItemRepository.clearItems({ accountId });
       deltaTokenRepository.clearDeltaToken(accountId);
@@ -149,7 +161,13 @@ export class RealMicrosoft365Service implements Microsoft365Service {
         const now = Date.now();
         try {
           // Garante token válido antes de bater no Graph (refresh se preciso).
+          const prevExp = await getTokenExpiresAt(account.id);
           await getValidAccessToken(account.id);
+          const fresh = await readStoredTokens(account.id);
+          if (fresh && fresh.expiresAt !== prevExp) {
+            // Token foi renovado → propaga para o backend (outros dispositivos).
+            await this.pushAccountToRemote(account, fresh);
+          }
 
           // Escopo desta versão: apenas e-mails sinalizados.
           const messages = await fetchFlaggedEmails(account.id);
@@ -217,6 +235,72 @@ export class RealMicrosoft365Service implements Microsoft365Service {
     } finally {
       this.syncing = false;
     }
+  }
+
+  /** Envia (upsert) uma conta + seus tokens para o backend. Best-effort. */
+  private async pushAccountToRemote(
+    account: MicrosoftAccount,
+    tokens: StoredTokens | null,
+  ): Promise<void> {
+    try {
+      await remoteAccountApi.upsert(account.id, {
+        account_id: account.id,
+        email: account.email,
+        display_name: account.displayName,
+        access_token: tokens?.accessToken ?? null,
+        refresh_token: tokens?.refreshToken ?? null,
+        token_expires_at: tokens?.expiresAt ?? account.tokenExpiresAt ?? null,
+      });
+    } catch (err) {
+      ms365Logger.warn('microsoft_auth', 'falha ao sincronizar conta com o backend', {
+        accountId: account.id,
+        error: err instanceof Error ? err.name : 'unknown',
+      });
+    }
+  }
+
+  /**
+   * Restaura, neste dispositivo, as contas Microsoft sincronizadas no backend
+   * (conectadas em outro aparelho). Para contas ainda inexistentes localmente,
+   * grava os tokens no Secure Store; para as já existentes, só atualiza os
+   * metadados (os tokens locais podem estar mais frescos). Best-effort.
+   */
+  async restoreFromRemote(userId: string): Promise<number> {
+    let remote;
+    try {
+      const res = await remoteAccountApi.list();
+      remote = res.data;
+    } catch {
+      return 0; // sem rede / não autenticado → silencioso
+    }
+    const now = Date.now();
+    let restored = 0;
+    for (const r of remote) {
+      const existing = microsoftAccountRepository.getAccountById(r.account_id);
+      if (!existing && r.access_token) {
+        await persistTokensForAccount(r.account_id, {
+          accessToken: r.access_token,
+          refreshToken: r.refresh_token ?? null,
+          expiresAt: r.token_expires_at ?? 0,
+        });
+        restored += 1;
+      }
+      microsoftAccountRepository.saveAccount({
+        id: r.account_id,
+        userId,
+        microsoftUserId: r.account_id,
+        email: r.email ?? '',
+        displayName: r.display_name ?? r.email ?? '',
+        tokenExpiresAt: r.token_expires_at ?? existing?.tokenExpiresAt ?? 0,
+        lastSyncAt: existing?.lastSyncAt ?? null,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      });
+    }
+    if (restored > 0) {
+      ms365Logger.info('microsoft_auth', 'contas restauradas do backend', { restored });
+    }
+    return restored;
   }
 
   /**
