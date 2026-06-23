@@ -25,15 +25,18 @@ import { useFilterStore } from '@/store/filter-store';
 import { microsoft365Service } from '@/modules/microsoft365/services';
 import { useTheme } from '@/hooks/use-theme';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { Text as UIText } from '@/components/ui/Text';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY, type TaskRow } from '@/components/tasks/CompletedSection';
 import {
   useTasks, useMyDay, useImportantTasks, useUpcomingTasks,
-  useDeleteTask, useToggleTaskStatus, useToggleFavorite, useCreateTask, useReorderTasks,
+  useDeleteTask, useToggleTaskStatus, useToggleFavorite, useCreateTask, useReorderTasks, useUpdateTask,
 } from '@/hooks/api/use-tasks';
+import { taskApi } from '@/infrastructure/api/task-api';
 import { partitionTasks } from '@/utils/group-tasks';
-import { useTaskLists, useArchiveTaskList } from '@/hooks/api/use-task-lists';
-import { useDashboard } from '@/hooks/api/use-dashboard';
+import { useTaskLists, useArchiveTaskList, TASK_LISTS_QUERY_KEY } from '@/hooks/api/use-task-lists';
+import { useDashboard, DASHBOARD_QUERY_KEY } from '@/hooks/api/use-dashboard';
 import { useAuthStore } from '@/store/auth-store';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
@@ -123,26 +126,95 @@ function StatCard({
   );
 }
 
+// ─── ListPickerSheet ─────────────────────────────────────────────────────────
+// Modal (BottomSheet) para escolher uma lista de destino. Reusado tanto pelo
+// swipe "Mover" de uma única tarefa quanto pela ação "Mover" em massa. Inclui a
+// opção "Sem lista" (não envia task_list_id → mantém compat. com a API que só
+// aceita number; nesse caso passamos undefined ao callback).
+function ListPickerSheet({ visible, onClose, onSelect, lists }: {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (listId: number) => void;
+  lists: ApiTaskListFull[];
+}) {
+  const { theme } = useTheme();
+  return (
+    <BottomSheet visible={visible} onClose={onClose} title="Mover para a lista">
+      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+        {lists.map((list) => (
+          <TouchableOpacity
+            key={list.id}
+            style={[styles.pickerOption, { borderBottomColor: theme.colors.borderLight }]}
+            onPress={() => { onSelect(list.id); onClose(); }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.pickerSwatch, { backgroundColor: list.color ?? '#9CA3AF' }]}>
+              {list.icon ? <Text style={styles.pickerSwatchEmoji}>{list.icon}</Text> : null}
+            </View>
+            <UIText variant="body" style={{ color: theme.colors.text, flex: 1 }}>{list.name}</UIText>
+          </TouchableOpacity>
+        ))}
+        {lists.length === 0 && (
+          <UIText variant="body" style={{ color: theme.colors.textSecondary, padding: Spacing[4] }}>
+            Você ainda não tem listas. Crie uma lista primeiro.
+          </UIText>
+        )}
+      </ScrollView>
+    </BottomSheet>
+  );
+}
+
 // ─── TaskItemSwipeable ───────────────────────────────────────────────────────
 
-function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLast }: {
+function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, onMove, onLongPress, selectionMode, selected, isLast }: {
   task: ReturnType<typeof apiTaskToLegacy>;
   onToggle: () => void;
   onPress: () => void;
   onFavorite: () => void;
   onDelete: () => void;
+  onMove: () => void;
+  onLongPress: () => void;
+  selectionMode: boolean;
+  selected: boolean;
   isLast?: boolean;
 }) {
+  const { theme } = useTheme();
   const swipeableRef = useRef<Swipeable>(null);
   const renderRightActions = useCallback(() => (
-    <TouchableOpacity style={styles.deleteAction} onPress={() => { swipeableRef.current?.close(); onDelete(); }}>
-      <Text style={styles.deleteActionText}>Excluir</Text>
-    </TouchableOpacity>
-  ), [onDelete]);
+    <View style={styles.rightActions}>
+      <TouchableOpacity style={styles.moveAction} onPress={() => { swipeableRef.current?.close(); onMove(); }}>
+        <Text style={styles.actionText}>Mover</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.deleteAction} onPress={() => { swipeableRef.current?.close(); onDelete(); }}>
+        <Text style={styles.actionText}>Excluir</Text>
+      </TouchableOpacity>
+    </View>
+  ), [onDelete, onMove]);
 
+  // Em modo de seleção: desabilita swipe e tap-to-open. A linha inteira vira um
+  // toggle de seleção e exibe o indicador (check) à esquerda. O TaskItem interno
+  // fica sem interação (pointerEvents none): tocar em qualquer ponto toggla.
+  if (selectionMode) {
+    return (
+      <TouchableOpacity activeOpacity={0.7} onPress={onPress} onLongPress={onLongPress} delayLongPress={300}>
+        <View style={[styles.selectRow, selected && { backgroundColor: Colors.primary + '14' }]}>
+          <View style={[styles.selectIndicator, { borderColor: selected ? Colors.primary : theme.colors.border, backgroundColor: selected ? Colors.primary : 'transparent' }]}>
+            {selected && <Text style={styles.selectCheck}>✓</Text>}
+          </View>
+          <View pointerEvents="none" style={{ flex: 1 }}>
+            <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} isLast={isLast} />
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  // Modo normal: swipe revela "Mover"/"Excluir"; long-press (no próprio TaskItem,
+  // sem aninhar touchables) entra no modo de seleção. Tap abre, checkbox e 🎯
+  // continuam funcionando porque o long-press vive na MESMA TouchableOpacity da linha.
   return (
     <Swipeable ref={swipeableRef} renderRightActions={renderRightActions} rightThreshold={60} friction={2}>
-      <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} isLast={isLast} />
+      <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} onLongPress={() => onLongPress()} isLast={isLast} />
     </Swipeable>
   );
 }
@@ -153,12 +225,16 @@ function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, isLa
 // arrasta no MESMO toque, porque o Pressable não cancela o pan interno da lib
 // (ao contrário do Gesture.LongPress) e, por estar fora do Swipeable, não disputa
 // o gesto com o swipe-to-delete. O highlight (cor) do item ativo vem de cellAnimations.
-function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: {
+function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete, onMove, onLongPress, selectionMode, selected }: {
   task: ReturnType<typeof apiTaskToLegacy>;
   onToggle: () => void;
   onPress: () => void;
   onFavorite: () => void;
   onDelete: () => void;
+  onMove: () => void;
+  onLongPress: () => void;
+  selectionMode: boolean;
+  selected: boolean;
 }) {
   const { theme } = useTheme();
   const drag = useReorderableDrag();
@@ -171,15 +247,22 @@ function ReorderableTaskCell({ task, onToggle, onPress, onFavorite, onDelete }: 
           onPress={onPress}
           onFavorite={onFavorite}
           onDelete={onDelete}
+          onMove={onMove}
+          onLongPress={onLongPress}
+          selectionMode={selectionMode}
+          selected={selected}
         />
       </View>
-      <Pressable
-        onPressIn={() => drag()}
-        hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-        style={styles.dragHandle}
-      >
-        <Text style={[styles.dragHandleIcon, { color: theme.colors.textSecondary }]}>⠿</Text>
-      </Pressable>
+      {/* Em modo de seleção o punho de arraste some — a seleção assume o gesto. */}
+      {!selectionMode && (
+        <Pressable
+          onPressIn={() => drag()}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+          style={styles.dragHandle}
+        >
+          <Text style={[styles.dragHandleIcon, { color: theme.colors.textSecondary }]}>⠿</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -199,6 +282,7 @@ export default function TasksScreen() {
   const { data: taskLists = [] } = useTaskLists();
   const archiveList = useArchiveTaskList();
   const deleteTask = useDeleteTask();
+  const updateTask = useUpdateTask();
   const toggleStatus = useToggleTaskStatus();
   const toggleFav = useToggleFavorite();
   const createTask = useCreateTask();
@@ -206,6 +290,95 @@ export default function TasksScreen() {
   const qc = useQueryClient();
 
   const [quickTitle, setQuickTitle] = useState('');
+
+  // ─── Seleção múltipla (long-press) ─────────────────────────────────────────
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  // ─── Picker de lista (Mover) — single (id da tarefa) ou bulk (null) ─────────
+  const [movePickerOpen, setMovePickerOpen] = useState(false);
+  // Quando definido, é o id de uma única tarefa a mover; quando null com o picker
+  // aberto, é a ação em massa sobre os selecionados.
+  const [singleMoveId, setSingleMoveId] = useState<string | null>(null);
+
+  const invalidateAll = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['tasks'] });
+    qc.invalidateQueries({ queryKey: TASK_LISTS_QUERY_KEY });
+    qc.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
+  }, [qc]);
+
+  const exitSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const enterSelection = useCallback((id: string) => {
+    setSelectionMode(true);
+    setSelectedIds(new Set([id]));
+  }, []);
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // Mover uma única tarefa (swipe "Mover") para a lista escolhida no picker.
+  const handleSingleMove = useCallback((listId: number) => {
+    if (!singleMoveId) return;
+    updateTask.mutate({ id: singleMoveId, data: { task_list_id: listId } });
+    setSingleMoveId(null);
+  }, [singleMoveId, updateTask]);
+
+  // Mover em massa: loop client-side, invalida as queries UMA vez ao final.
+  const handleBulkMove = useCallback(async (listId: number) => {
+    const ids = Array.from(selectedIds);
+    setBulkBusy(true);
+    try {
+      for (const id of ids) {
+        await taskApi.update(parseInt(id), { task_list_id: listId });
+      }
+    } catch {
+      Alert.alert('Erro', 'Não foi possível mover todas as tarefas.');
+    } finally {
+      setBulkBusy(false);
+      invalidateAll();
+      exitSelection();
+    }
+  }, [selectedIds, invalidateAll, exitSelection]);
+
+  const handleBulkDelete = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    Alert.alert(
+      'Excluir tarefas',
+      `${ids.length} tarefa${ids.length !== 1 ? 's' : ''} ${ids.length !== 1 ? 'serão removidas' : 'será removida'} permanentemente.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            setBulkBusy(true);
+            try {
+              for (const id of ids) {
+                await taskApi.delete(parseInt(id));
+              }
+            } catch {
+              Alert.alert('Erro', 'Não foi possível excluir todas as tarefas.');
+            } finally {
+              setBulkBusy(false);
+              invalidateAll();
+              exitSelection();
+            }
+          },
+        },
+      ],
+    );
+  }, [selectedIds, invalidateAll, exitSelection]);
 
   // Debounce search
   useEffect(() => {
@@ -483,7 +656,7 @@ export default function TasksScreen() {
         ListHeaderComponent={ListHeader}
         // Arraste por long-press (220ms) ativado por célula (ver ReorderableTaskCell)
         // — só nas pendentes. O pan padrão da lib segue o dedo após o long-press.
-        dragEnabled={showReorder}
+        dragEnabled={showReorder && !selectionMode}
         onReorder={handleReorder}
         // Item arrastado: leve escala + sombra + fundo destacado (cor) — ver REORDER_CELL_ANIMATIONS.
         cellAnimations={REORDER_CELL_ANIMATIONS}
@@ -499,17 +672,22 @@ export default function TasksScreen() {
           // "Concluídas".
           const next = rows[index + 1];
           const isLast = !next || next.kind === 'completed-header';
+          const selected = selectedIds.has(item.id);
           const onToggle = () => {
             const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
             toggleStatus.mutate({ id: item.id, status: newStatus });
           };
-          const onPress = () => router.push(`/task/${item.id}` as never);
+          // Em seleção, tocar a linha toggla; senão abre a tarefa.
+          const onPress = () => (selectionMode ? toggleSelected(item.id) : router.push(`/task/${item.id}` as never));
+          const onLongPress = () => (selectionMode ? toggleSelected(item.id) : enterSelection(item.id));
           const onFavorite = () => toggleFav.mutate({ id: item.id, isFavorite: !item.isFavorite });
           const onDelete = () => handleDelete(item.id, item.title);
+          const onMove = () => { setSingleMoveId(item.id); setMovePickerOpen(true); };
 
-          // Pendentes (índices 0..pendingCount-1) ficam arrastáveis quando elegível.
-          // O highlight do item ativo (cor) vem de cellAnimations.
-          if (showReorder && item.status !== 'completed' && index < pendingCount) {
+          // Pendentes (índices 0..pendingCount-1) ficam arrastáveis quando elegível
+          // E fora do modo de seleção (o punho some na seleção). O highlight do item
+          // ativo (cor) vem de cellAnimations.
+          if (showReorder && !selectionMode && item.status !== 'completed' && index < pendingCount) {
             return (
               <ReorderableTaskCell
                 task={item}
@@ -517,6 +695,10 @@ export default function TasksScreen() {
                 onPress={onPress}
                 onFavorite={onFavorite}
                 onDelete={onDelete}
+                onMove={onMove}
+                onLongPress={onLongPress}
+                selectionMode={selectionMode}
+                selected={selected}
               />
             );
           }
@@ -529,6 +711,10 @@ export default function TasksScreen() {
               onPress={onPress}
               onFavorite={onFavorite}
               onDelete={onDelete}
+              onMove={onMove}
+              onLongPress={onLongPress}
+              selectionMode={selectionMode}
+              selected={selected}
             />
           );
         }}
@@ -549,6 +735,33 @@ export default function TasksScreen() {
         keyboardShouldPersistTaps="handled"
       />
 
+      {/* Barra de seleção múltipla — substitui o quick-add enquanto ativa. */}
+      {selectionMode ? (
+        <View style={[styles.selectionBar, { backgroundColor: theme.colors.surfaceElevated, borderTopColor: theme.colors.border }]}>
+          <UIText variant="body" weight="semibold" style={{ color: theme.colors.text }}>
+            {selectedIds.size} selecionada{selectedIds.size !== 1 ? 's' : ''}
+          </UIText>
+          <View style={styles.selectionActions}>
+            <TouchableOpacity
+              style={[styles.selectionBtn, { backgroundColor: Colors.primary + '18' }]}
+              onPress={() => { setSingleMoveId(null); setMovePickerOpen(true); }}
+              disabled={bulkBusy || selectedIds.size === 0}
+            >
+              <Text style={[styles.selectionBtnText, { color: Colors.primary }]}>Mover</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.selectionBtn, { backgroundColor: Colors.danger + '18' }]}
+              onPress={handleBulkDelete}
+              disabled={bulkBusy || selectedIds.size === 0}
+            >
+              <Text style={[styles.selectionBtnText, { color: Colors.danger }]}>Excluir</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.selectionBtn} onPress={exitSelection} disabled={bulkBusy}>
+              <Text style={[styles.selectionBtnText, { color: theme.colors.textSecondary }]}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
@@ -586,6 +799,15 @@ export default function TasksScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      )}
+
+      {/* Picker de lista de destino — single (swipe Mover) ou bulk (barra). */}
+      <ListPickerSheet
+        visible={movePickerOpen}
+        onClose={() => { setMovePickerOpen(false); setSingleMoveId(null); }}
+        lists={taskLists}
+        onSelect={(listId) => { if (singleMoveId) handleSingleMove(listId); else void handleBulkMove(listId); }}
+      />
     </SafeAreaView>
   );
 }
@@ -662,8 +884,32 @@ const styles = StyleSheet.create({
   // Task list
   list: { paddingBottom: 96 },
   emptyOuter: { flexGrow: 1 },
-  deleteAction: { backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', width: 80 },
-  deleteActionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  rightActions: { flexDirection: 'row' },
+  moveAction: { backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center', width: 80 },
+  deleteAction: { backgroundColor: Colors.danger, justifyContent: 'center', alignItems: 'center', width: 80 },
+  actionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+
+  // Seleção múltipla — linha selecionável (indicador à esquerda)
+  selectRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: Spacing[4] },
+  selectIndicator: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  selectCheck: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', lineHeight: 15 },
+
+  // Barra de ações em massa (rodapé)
+  selectionBar: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    elevation: 8, shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 6,
+  },
+  selectionActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  selectionBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radius.lg },
+  selectionBtnText: { fontSize: 14, fontWeight: '600' },
+
+  // Picker de lista (BottomSheet)
+  pickerOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth, gap: 14 },
+  pickerSwatch: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  pickerSwatchEmoji: { fontSize: 16 },
 
   // Quick-add bottom bar + FAB
   bottomBarWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },

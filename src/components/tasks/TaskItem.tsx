@@ -20,11 +20,13 @@ interface TaskItemProps {
   onToggle: (id: string) => void;
   onPress: (task: Task) => void;
   onFavorite: (id: string) => void;
+  /** Long-press na linha — usado para entrar no modo de seleção múltipla. */
+  onLongPress?: (id: string) => void;
   /** Quando true, esconde o separador inferior (use no último item da lista). */
   isLast?: boolean;
 }
 
-export function TaskItem({ task, onToggle, onPress, onFavorite, isLast = false }: TaskItemProps) {
+export function TaskItem({ task, onToggle, onPress, onFavorite, onLongPress, isLast = false }: TaskItemProps) {
   const { theme } = useTheme();
   const isCompleted = task.status === 'completed';
 
@@ -52,6 +54,8 @@ export function TaskItem({ task, onToggle, onPress, onFavorite, isLast = false }
           },
         ]}
         onPress={() => onPress(task)}
+        onLongPress={onLongPress ? () => onLongPress(task.id) : undefined}
+        delayLongPress={350}
         activeOpacity={0.7}
       >
         {/* Left: Checkbox */}

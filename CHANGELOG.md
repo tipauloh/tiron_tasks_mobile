@@ -14,6 +14,8 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 - Microsoft 365: sync resiliente e mensagem de erro real (diagnóstico). [FIX-UX-001]
 
 ### Added
+- Tarefas: "Mover para outra lista" no swipe; seleção múltipla por long-press com excluir/mover em massa.
+- Microsoft 365: contador mostra só e-mails sinalizados em aberto; lembrete recorrente acompanha a recorrência (rótulo explícito).
 - Microsoft 365: suporte a MÚLTIPLAS contas simultâneas (conectar várias; cada e-mail/tarefa sabe sua conta; conclusão marca o flag na conta certa). [FEAT-EMAIL-TASK Etapa C]
 - Lista "E-mail Sinalizados": puxar-para-atualizar ressincroniza o Microsoft 365; e atualiza sozinha a cada 10s enquanto aberta. [FEAT-EMAIL-TASK Etapa B]
 - Tarefas de e-mail: bandeirinha 🚩 no título + bloco do e-mail (remetente/assunto/prévia) na tela da tarefa; descrição padrão editável. [FEAT-EMAIL-TASK Etapa A]

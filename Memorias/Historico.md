@@ -191,3 +191,8 @@ O dashboard (index.tsx) busca pendentes + concluídas na MESMA query e filtra/ag
 
 ### FEAT — Lembrete recorrente (segue a recorrência da tarefa) (2026-06-23)
 `scheduleTaskReminder(task, remindAtISO, recurrence?)` em lib/notifications.ts: se a tarefa é recorrente (intervalo 1), agenda notificação RECORRENTE nativa no mesmo horário do lembrete (startTime - offset) — DAILY / WEEKLY (um por by_weekday; 0=Dom→SDK weekday 1) / MONTHLY (day) / YEARLY (day+month). Intervalo>1 ou sem recorrência → DATE única. `cancelTaskReminders(taskId)` cancela via content.data.taskId (sem AsyncStorage). Integrado em create-task.tsx e task/[id].tsx (passa recurrence; cancela ao remover lembrete). OTA. Limitação v1: o backend guarda só a 1ª data do remind_at; re-agendar ao editar recorrência fica p/ depois.
+
+### FEAT — Swipe "Mover" + seleção múltipla em massa (2026-06-23)
+- **Swipe à esquerda:** além de "Excluir", botão "Mover" (abre BottomSheet com as listas; move via useUpdateTask task_list_id).
+- **Long-press:** entra em modo de seleção múltipla (selectionMode + selectedIds Set). Cada linha mostra check-circle; tocar alterna seleção (não abre a tarefa). Barra inferior com contador + "Mover" (em massa, mesmo picker) + "Excluir" (em massa, com confirm) + "Cancelar". Loops client-side (taskApi.update/delete) + invalidação única ['tasks']/['task-lists']/dashboard. bulkBusy desabilita os botões durante a operação.
+- **Gestos:** em selectionMode o punho de arraste ⠿ é escondido e dragEnabled=false; o Swipeable é trocado por linha selecionável. TaskItem ganhou prop onLongPress (delayLongPress 350). Sem conflito com tap/checkbox/favorito/drag.
