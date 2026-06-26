@@ -1,7 +1,9 @@
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import {
   Dimensions,
+  Keyboard,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -32,6 +34,21 @@ export function BottomSheet({ visible, onClose, children, title }: BottomSheetPr
   const { theme } = useTheme();
   const translateY = useSharedValue(SHEET_HEIGHT);
   const overlayOpacity = useSharedValue(0);
+  // Sobe o sheet acima do teclado para os campos não ficarem cobertos.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvt, (e) =>
+      setKeyboardHeight(e.endCoordinates?.height ?? 0),
+    );
+    const hideSub = Keyboard.addListener(hideEvt, () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -52,6 +69,7 @@ export function BottomSheet({ visible, onClose, children, title }: BottomSheetPr
   }));
 
   function handleClose() {
+    Keyboard.dismiss();
     overlayOpacity.value = withTiming(0, { duration: 200 });
     translateY.value = withTiming(
       SHEET_HEIGHT,
@@ -70,7 +88,7 @@ export function BottomSheet({ visible, onClose, children, title }: BottomSheetPr
       statusBarTranslucent
       onRequestClose={handleClose}
     >
-      <View style={styles.root}>
+      <View style={[styles.root, { paddingBottom: keyboardHeight }]}>
         <Animated.View style={[styles.overlay, overlayAnimatedStyle]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
@@ -79,7 +97,10 @@ export function BottomSheet({ visible, onClose, children, title }: BottomSheetPr
           style={[
             styles.sheet,
             {
-              height: SHEET_HEIGHT,
+              height:
+                keyboardHeight > 0
+                  ? Math.min(SHEET_HEIGHT, SCREEN_HEIGHT - keyboardHeight - 24)
+                  : SHEET_HEIGHT,
               backgroundColor: theme.colors.surfaceElevated,
             },
             sheetAnimatedStyle,
