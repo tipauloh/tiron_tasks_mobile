@@ -6,6 +6,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import Animated, {
@@ -18,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTheme } from '../../hooks/use-theme';
 import { Text } from './Text';
+import { AppIcon } from './AppIcon';
 import { Radius, Spacing } from '../../constants/spacing';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -110,9 +112,17 @@ export function BottomSheet({ visible, onClose, children, title }: BottomSheetPr
 
           {title && (
             <View style={styles.header}>
-              <Text variant="headline" weight="semibold">
+              <Text variant="headline" weight="semibold" style={{ flex: 1 }} numberOfLines={1}>
                 {title}
               </Text>
+              <TouchableOpacity
+                onPress={handleClose}
+                hitSlop={10}
+                style={[styles.closeBtn, { backgroundColor: theme.colors.surface }]}
+                accessibilityLabel="Fechar"
+              >
+                <AppIcon name="close" size={18} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -147,10 +157,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[2],
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
     paddingHorizontal: Spacing[6],
     paddingVertical: Spacing[3],
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(128,128,128,0.2)',
+  },
+  closeBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
