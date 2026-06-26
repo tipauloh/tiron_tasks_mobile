@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { CircularProgress } from '@/components/ui/CircularProgress';
 import { QuickUpdateSheet } from '@/components/metas/QuickUpdateSheet';
+import { CheckinHistory } from '@/components/metas/CheckinHistory';
 import { categoryMeta } from '@/components/metas/categories';
 import {
   useGoal,
@@ -60,6 +61,8 @@ function KeyResultRow({ kr, onUpdate }: { kr: ApiKeyResultSummary; onUpdate: () 
       </View>
 
       <ProgressBar value={kr.progress} color={color} height={8} style={{ marginTop: Spacing[2] }} />
+
+      <CheckinHistory krId={String(kr.id)} kpiType={kr.kpi_type} unit={kr.unit} />
 
       <TouchableOpacity
         style={[styles.updateBtn, { backgroundColor: Colors.primary + '14' }]}
@@ -130,9 +133,14 @@ export default function GoalDetailScreen() {
           <Text variant="body" style={{ color: Colors.primary }}>Voltar</Text>
         </TouchableOpacity>
         <Text variant="callout" weight="semibold">Meta</Text>
-        <TouchableOpacity onPress={handleDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text variant="body" style={{ color: Colors.danger }}>Excluir</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => router.push(`/edit-meta?id=${id}`)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text variant="body" style={{ color: Colors.primary }}>Editar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text variant="body" style={{ color: Colors.danger }}>Excluir</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -200,6 +208,7 @@ export default function GoalDetailScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing[4], paddingVertical: Spacing[3], borderBottomWidth: StyleSheet.hairlineWidth },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing[4] },
   scroll: { padding: Spacing[4], paddingBottom: Spacing[12], gap: Spacing[5] },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing[4] },
   goalHeadCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing[4] },

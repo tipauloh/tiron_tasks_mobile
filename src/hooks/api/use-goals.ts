@@ -11,6 +11,7 @@ export const GOALS_QUERY_KEY = (filters?: GoalListParams) =>
   filters ? ['goals', filters] : ['goals'];
 export const GOAL_QUERY_KEY = (id: string) => ['goals', id];
 export const GOALS_DASHBOARD_QUERY_KEY = ['goals', 'dashboard'];
+export const KR_HISTORY_QUERY_KEY = (krId: string) => ['goals', 'kr-history', krId];
 
 export function useGoals(filters: GoalListParams = {}) {
   return useQuery({
@@ -29,6 +30,18 @@ export function useGoal(id: string) {
     },
     staleTime: 2 * 60_000,
     enabled: !!id,
+  });
+}
+
+export function useKeyResultHistory(krId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: KR_HISTORY_QUERY_KEY(krId),
+    queryFn: async () => {
+      const res = await goalApi.keyResultHistory(parseInt(krId));
+      return res.data;
+    },
+    enabled: enabled && !!krId,
+    staleTime: 10_000,
   });
 }
 
@@ -86,8 +99,8 @@ export function useSetPrimaryGoal() {
 export function useUpdateKeyResultValue() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, value }: { id: string; value: number }) =>
-      goalApi.updateKeyResultValue(parseInt(id), value),
+    mutationFn: ({ id, value, note }: { id: string; value: number; note?: string }) =>
+      goalApi.updateKeyResultValue(parseInt(id), value, note),
     onSuccess: () => invalidateGoals(qc),
   });
 }

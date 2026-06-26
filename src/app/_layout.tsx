@@ -122,6 +122,10 @@ export default function RootLayout() {
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
+          name="edit-meta"
+          options={{ presentation: 'card', animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
           name="goal/[id]"
           options={{ presentation: 'card', animation: 'slide_from_right' }}
         />

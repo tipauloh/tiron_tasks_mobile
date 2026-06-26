@@ -37,6 +37,15 @@ export interface ApiGoalSummary {
   key_results: ApiKeyResultSummary[];
 }
 
+export interface ApiKeyResultCheckin {
+  id: number;
+  value: number;
+  kr_progress: number;
+  goal_progress: number;
+  recorded_at: string | null;
+  note?: string | null;
+}
+
 export interface ApiGoalDetail extends ApiGoalSummary {
   // Detalhe pode trazer campos extras no futuro; herda o resumo por ora.
   description?: string | null;

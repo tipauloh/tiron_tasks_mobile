@@ -10,6 +10,7 @@ import type {
   ApiGoalsDashboard,
   ApiGoalSummary,
   ApiGoalUpdateRequest,
+  ApiKeyResultCheckin,
   ApiKeyResultCreateRequest,
   ApiKeyResultSummary,
   ApiKeyResultUpdateRequest,
@@ -89,7 +90,12 @@ export const goalApi = {
   updateKeyResultValue(
     krId: number,
     value: number,
+    note?: string,
   ): Promise<SingleResponse<ApiKeyResultSummary>> {
-    return apiClient.patch(`${KR_BASE}/${krId}/value`, { value });
+    return apiClient.patch(`${KR_BASE}/${krId}/value`, { value, note });
+  },
+
+  keyResultHistory(krId: number): Promise<SingleResponse<ApiKeyResultCheckin[]>> {
+    return apiClient.get(`${KR_BASE}/${krId}/checkins`);
   },
 };

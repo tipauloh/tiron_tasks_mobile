@@ -14,6 +14,7 @@ Todos os releases documentados seguem [Semantic Versioning](https://semver.org/)
 - Microsoft 365: sync resiliente e mensagem de erro real (diagnóstico). [FIX-UX-001]
 
 ### Added
+- Metas: editar meta após criada; histórico de progressão dos resultados-chave (data/hora) com observação opcional ao atualizar. [FEAT-METAS-HIST]
 - Editor de texto na descrição da tarefa: negrito, itálico, listas, alinhamento e campo redimensionável. [FEAT-RICHTEXT] (requer atualização do app — v1.1.0)
 - Contas Microsoft 365 sincronizam entre dispositivos da mesma conta (aparelho novo recebe as contas conectadas). [FEAT-M365-SYNC]
 - Fuso horário por usuário (Perfil → Preferências): exibe os horários das tarefas no fuso escolhido, mantendo o instante. [FEAT-TZ]

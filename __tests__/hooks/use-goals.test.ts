@@ -204,9 +204,17 @@ describe('useUpdateKeyResultValue', () => {
     const invalidateSpy = jest.spyOn(qc, 'invalidateQueries');
     const { result } = await renderHook(() => useUpdateKeyResultValue(), { wrapper: makeWrapper(qc) });
     await act(async () => { await result.current.mutateAsync({ id: '9', value: 42 }); });
-    expect(mockUpdateKrValue).toHaveBeenCalledWith(9, 42);
+    expect(mockUpdateKrValue).toHaveBeenCalledWith(9, 42, undefined);
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['goals'] }));
     invalidateSpy.mockRestore();
+  });
+
+  it('repassa a observação (note) para goalApi.updateKeyResultValue', async () => {
+    mockUpdateKrValue.mockResolvedValue({ data: {} });
+    const qc = makeQueryClient();
+    const { result } = await renderHook(() => useUpdateKeyResultValue(), { wrapper: makeWrapper(qc) });
+    await act(async () => { await result.current.mutateAsync({ id: '9', value: 42, note: 'corri 5km' }); });
+    expect(mockUpdateKrValue).toHaveBeenCalledWith(9, 42, 'corri 5km');
   });
 });
 

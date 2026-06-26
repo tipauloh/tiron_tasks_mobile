@@ -236,3 +236,12 @@ Campo de descrição (detalhe da tarefa) agora é um EDITOR VISUAL: negrito, it�
 - **Integração:** só em `task/[id].tsx` (create-task não tem descrição; nenhum card exibe descrição). key={task.id} + initialHtml={task.description} (não-controlado).
 - **Armazenamento:** HTML no campo `description` (TEXT). Backend: `caldav_service._html_to_text` converte HTML→texto puro na saída CalDAV (Apple Lembretes mostra texto limpo c/ bullets). Deployado.
 - **⚠️ EXIGE BUILD** (webview é nativo): version 1.0.0→**1.1.0** (runtimeVersion isola dos builds antigos). NÃO sai por OTA para 1.0.0.
+
+### FIX — Fuso horário no CalDAV (horas 3h erradas no iPhone) (2026-06-25)
+Horários sincronizados via CalDAV apareciam 3h a menos no iPhone (ex.: 08h no app → 05h no Calendário). Causa: o container `tiron-caldav` (`ical.py _combine`) marcava o wall-clock CANÔNICO (America/Sao_Paulo, -3) como `tzinfo=utc` SEM converter — 09:00 -3 virava 09:00Z. Corrigido: `_combine` interpreta como `CANONICAL_TZ=ZoneInfo('America/Sao_Paulo')` e converte p/ UTC (09:00 -3 → 12:00Z → 08:00 em Cuiabá -4 ✓). Caminho inverso (iPhone→app) também: `_to_canonical` converte o datetime recebido p/ America/Sao_Paulo antes de extrair HH:MM. Adicionado `tzdata` ao requirements do container. **Cache-bust** na API (`caldav_service._FORMAT_VERSION='tz2'` no etag+ctag) força o iPhone a re-sincronizar tudo sem re-adicionar a conta. 12 testes no container. Container + API deployados.
+
+### FEAT — Metas: editar meta + histórico de check-ins com observação (2026-06-25)
+- **Editar meta:** antes só dava pra excluir. Nova tela `src/app/edit-meta.tsx` (título/categoria/prazo via CategoryPicker+CalendarPicker, useUpdateGoal — PUT /goals/{id} já existia); botão "Editar" no goal/[id].tsx; rota registrada no _layout.
+- **Histórico de progressão dos KRs:** cada atualização de valor já gravava um check-in (goal_checkins); agora há GET /key-results/{krId}/checkins (backend novo: schema KeyResultCheckinResponse + goal_service.list_key_result_checkins). Mobile: tipo ApiKeyResultCheckin, goalApi.keyResultHistory, useKeyResultHistory, componente `CheckinHistory.tsx` (colapsável, começa fechado, lista valor + data/hora pt-BR).
+- **Observação no check-in:** coluna `goal_checkins.note` (migração); KeyResultValueRequest+note; QuickUpdateSheet ganhou campo "Observação" (opcional, multiline, "o que fez para evoluir"); CheckinHistory exibe a nota. 297 testes.
+- Backend deployado; mobile OTA. Editor/Metas só no runtime 1.1.0 (build TestFlight).

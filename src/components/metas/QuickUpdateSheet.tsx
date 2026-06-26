@@ -24,12 +24,14 @@ interface QuickUpdateSheetProps {
 export function QuickUpdateSheet({ visible, onClose, keyResult }: QuickUpdateSheetProps) {
   const { theme } = useTheme();
   const [value, setValue] = useState('');
+  const [note, setNote] = useState('');
   const inputRef = useRef<TextInput>(null);
   const updateValue = useUpdateKeyResultValue();
 
   useEffect(() => {
     if (visible && keyResult) {
       setValue(String(keyResult.current_value));
+      setNote('');
       // Autofocus logo após a animação de abertura do sheet.
       const t = setTimeout(() => inputRef.current?.focus(), 250);
       return () => clearTimeout(t);
@@ -49,8 +51,14 @@ export function QuickUpdateSheet({ visible, onClose, keyResult }: QuickUpdateShe
 
   async function handleSave() {
     if (!keyResult || !valid) return;
+    const trimmedNote = note.trim();
     try {
-      await updateValue.mutateAsync({ id: String(keyResult.id), value: parsed });
+      await updateValue.mutateAsync({
+        id: String(keyResult.id),
+        value: parsed,
+        note: trimmedNote ? trimmedNote : undefined,
+      });
+      setNote('');
       onClose();
     } catch {
       // mantém o sheet aberto; o usuário pode tentar novamente
@@ -90,6 +98,25 @@ export function QuickUpdateSheet({ visible, onClose, keyResult }: QuickUpdateShe
           />
         </View>
 
+        <View style={styles.field}>
+          <Text variant="label" secondary>OBSERVAÇÃO</Text>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            multiline
+            placeholder="O que você fez para evoluir? (opcional)"
+            placeholderTextColor={theme.colors.textTertiary}
+            style={[
+              styles.noteInput,
+              {
+                color: theme.colors.text,
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.borderLight,
+              },
+            ]}
+          />
+        </View>
+
         <Button
           title={updateValue.isPending ? 'Salvando...' : 'Salvar'}
           onPress={handleSave}
@@ -113,5 +140,14 @@ const styles = StyleSheet.create({
     height: 56,
     fontSize: FontSize.xl,
     fontWeight: FontWeight.semibold,
+  },
+  noteInput: {
+    borderWidth: 1.5,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+    minHeight: 72,
+    fontSize: FontSize.base,
+    textAlignVertical: 'top',
   },
 });
