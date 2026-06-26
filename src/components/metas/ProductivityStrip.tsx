@@ -73,7 +73,7 @@ export function ProductivityStrip() {
       <View style={styles.header}>
         <Text variant="callout" weight="semibold">Sua produtividade</Text>
         <Text variant="caption" tertiary style={styles.subtitle}>
-          Tarefas que você concluiu — acompanhe seu ritmo. Toque no “+” do mês para ver a evolução.
+          Tarefas concluídas — seu ritmo de produção.
         </Text>
       </View>
       <Card padding={3} style={styles.card}>
