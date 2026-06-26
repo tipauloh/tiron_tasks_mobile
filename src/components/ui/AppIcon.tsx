@@ -94,6 +94,12 @@ export const APP_ICONS = {
   kpiWeight: { lib: 'feather', name: 'bar-chart-2' },
   kpiCustom: { lib: 'feather', name: 'edit-3' },
 
+  // Produtividade
+  streak: { lib: 'ionicons', name: 'flame-outline' },
+  award: { lib: 'feather', name: 'award' },
+  done: { lib: 'feather', name: 'check-circle' },
+  trendingUp: { lib: 'feather', name: 'trending-up' },
+
   // Categorias de metas
   catHealth: { lib: 'feather', name: 'activity' },
   catWork: { lib: 'feather', name: 'briefcase' },

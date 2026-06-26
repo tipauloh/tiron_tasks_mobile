@@ -13,6 +13,7 @@ import { Text } from '@/components/ui/Text';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScoreCard } from '@/components/metas/ScoreCard';
+import { ProductivityStrip } from '@/components/metas/ProductivityStrip';
 import { GoalCard } from '@/components/metas/GoalCard';
 import { KpiStat } from '@/components/metas/KpiStat';
 import { QuickUpdateSheet } from '@/components/metas/QuickUpdateSheet';
@@ -59,13 +60,19 @@ export default function MetasScreen() {
       </View>
 
       {!hasData && !isLoading ? (
-        <EmptyState
-          icon="emptyGoals"
-          title="Nenhuma meta ainda"
-          description="Defina uma meta e acompanhe seu progresso em um só lugar."
-          actionLabel="+ Criar meta"
-          onAction={() => router.push('/create-meta' as never)}
-        />
+        <View style={styles.emptyWrap}>
+          {/* Faixa de produtividade — estímulo mesmo sem metas cadastradas. */}
+          <View style={styles.emptyStrip}>
+            <ProductivityStrip />
+          </View>
+          <EmptyState
+            icon="emptyGoals"
+            title="Nenhuma meta ainda"
+            description="Defina uma meta e acompanhe seu progresso em um só lugar."
+            actionLabel="+ Criar meta"
+            onAction={() => router.push('/create-meta' as never)}
+          />
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -79,6 +86,9 @@ export default function MetasScreen() {
             />
           }
         >
+          {/* KPIs de produtividade (tarefas concluídas) no topo do conteúdo. */}
+          <ProductivityStrip />
+
           {dashboard && (
             <>
               {/* Score geral */}
@@ -152,6 +162,8 @@ const styles = StyleSheet.create({
   },
   addBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: Spacing[4], paddingBottom: Spacing[12], gap: Spacing[5] },
+  emptyWrap: { flex: 1 },
+  emptyStrip: { paddingHorizontal: Spacing[4], paddingTop: Spacing[2] },
   section: { gap: Spacing[2] },
   sectionTitle: { letterSpacing: 0.6, marginBottom: Spacing[1] },
   goalList: { gap: Spacing[3] },

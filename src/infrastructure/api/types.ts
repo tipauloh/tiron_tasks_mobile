@@ -226,6 +226,24 @@ export interface ApiTaskListUpdateRequest {
   position?: number;
 }
 
+// Produtividade — produção de tarefas concluídas (GET /tasks/productivity).
+// monthly = últimos 12 meses (ordem crescente); streak = dias consecutivos
+// com ≥1 tarefa concluída.
+export interface ApiProductivityMonthly {
+  month: string; // 'YYYY-MM'
+  count: number;
+}
+
+export interface ApiProductivity {
+  today: number;
+  week: number;
+  month: number;
+  year: number;
+  total: number;
+  streak: number;
+  monthly: ApiProductivityMonthly[];
+}
+
 // Dashboard
 export interface ApiDashboard {
   user_name: string;

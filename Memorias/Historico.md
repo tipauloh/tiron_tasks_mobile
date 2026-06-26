@@ -265,3 +265,7 @@ Identidade visual moderna/minimalista: emojis de UI substituídos por ícones ou
 - **Alerta (VALARM):** todo VEVENT agora tem um alarme. Se a tarefa tem lembrete (task_reminders.remind_at), o alerta usa esse horário (TRIGGER relativo ao início, ex. -PT15M); senão, alerta na hora do evento (TRIGGER 0). API: CalendarItem.remind_at (subquery MIN remind_at em list_items/get_item). Container: ical._add_alarm.
 - **Concluída:** tarefas concluídas continuam aparecendo no calendário com sufixo " ✅" no título (ical._populate_common). 
 - Cache-bust _FORMAT_VERSION ev1→ev2 (re-sync). 17 testes. Container+API deployados.
+
+### FEAT — KPIs de produtividade na aba Metas + ajustes CalDAV (2026-06-26)
+- **Produtividade:** faixa no topo da aba Metas com tarefas concluídas: Hoje, Mês, Ano, Sequência (streak de dias). Drill-down (+No card do Mês) abre BottomSheet "Concluídas por mês" (barras dos últimos 12 meses). Backend: GET /api/v1/tasks/productivity (task_service.get_productivity, períodos no fuso do usuário, completed_at em UTC; streak em Python). Mobile: ProductivityStrip + useProductivity (invalida ao concluir tarefa).
+- **CalDAV:** alerta padrão (sem lembrete) mudou de "na hora" para **15 min antes**; sufixo de concluída ✅→" (concluída)" (texto sutil, o emoji ficava desproporcional). _FORMAT_VERSION→ev4.

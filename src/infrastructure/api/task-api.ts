@@ -4,6 +4,7 @@ import type {
   ApiEmailSyncItem,
   ApiEmailSyncRequest,
   ApiEmailSyncResult,
+  ApiProductivity,
   ApiReminder,
   ApiTaskCreateRequest,
   ApiTaskDetail,
@@ -98,6 +99,11 @@ export const taskApi = {
 
   dashboard(): Promise<SingleResponse<ApiDashboard>> {
     return apiClient.get('/api/v1/dashboard');
+  },
+
+  // Produção de tarefas concluídas (today/week/month/year/total/streak/monthly).
+  productivity(): Promise<SingleResponse<ApiProductivity>> {
+    return apiClient.get(`${BASE}/productivity`);
   },
 
   // Lembretes

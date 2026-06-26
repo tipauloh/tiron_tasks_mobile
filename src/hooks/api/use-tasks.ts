@@ -8,6 +8,20 @@ import { DASHBOARD_QUERY_KEY } from './use-dashboard';
 export const TASKS_QUERY_KEY = (filters?: TaskListParams) =>
   filters ? ['tasks', filters] : ['tasks'];
 export const TASK_QUERY_KEY = (id: string) => ['tasks', id];
+export const PRODUCTIVITY_QUERY_KEY = ['tasks', 'productivity'];
+
+// KPIs de produtividade (produção de tarefas concluídas). Reaproveitado na aba
+// Metas como faixa de estímulo/acompanhamento.
+export function useProductivity() {
+  return useQuery({
+    queryKey: PRODUCTIVITY_QUERY_KEY,
+    queryFn: async () => {
+      const res = await taskApi.productivity();
+      return res.data;
+    },
+    staleTime: 60_000,
+  });
+}
 
 export function useTasks(filters: TaskListParams = {}) {
   return useQuery({
@@ -123,6 +137,8 @@ export function useToggleTaskStatus() {
       qc.invalidateQueries({ queryKey: ['tasks'] });
       qc.invalidateQueries({ queryKey: TASK_QUERY_KEY(id) });
       qc.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
+      // Concluir/reabrir muda os KPIs de produtividade — força recálculo.
+      qc.invalidateQueries({ queryKey: PRODUCTIVITY_QUERY_KEY });
 
       // Tarefa vinculada a um e-mail do Microsoft 365: espelha a conclusão no
       // flag do e-mail (best-effort, não bloqueia a UI). Se a sessão não tiver
