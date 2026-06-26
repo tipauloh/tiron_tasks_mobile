@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { CircularProgress } from '@/components/ui/CircularProgress';
 import { QuickUpdateSheet } from '@/components/metas/QuickUpdateSheet';
+import { EditKeyResultSheet } from '@/components/metas/EditKeyResultSheet';
 import { CheckinHistory } from '@/components/metas/CheckinHistory';
 import { categoryMeta } from '@/components/metas/categories';
 import {
@@ -38,7 +39,15 @@ function formatPrazo(endDate: string | null): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-function KeyResultRow({ kr, onUpdate }: { kr: ApiKeyResultSummary; onUpdate: () => void }) {
+function KeyResultRow({
+  kr,
+  onUpdate,
+  onEdit,
+}: {
+  kr: ApiKeyResultSummary;
+  onUpdate: () => void;
+  onEdit: () => void;
+}) {
   const { theme } = useTheme();
   const color = progressColor(kr.progress);
   return (
@@ -50,6 +59,9 @@ function KeyResultRow({ kr, onUpdate }: { kr: ApiKeyResultSummary; onUpdate: () 
         <Text variant="callout" weight="bold" style={{ color }}>
           {formatProgressPercent(kr.progress)}
         </Text>
+        <TouchableOpacity onPress={onEdit} hitSlop={8} style={{ marginLeft: Spacing[2] }}>
+          <AppIcon name="edit" size={17} color={theme.colors.textTertiary} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.krValues}>
@@ -86,6 +98,7 @@ export default function GoalDetailScreen() {
   const setPrimary = useSetPrimaryGoal();
 
   const [quickKr, setQuickKr] = useState<ApiKeyResultSummary | null>(null);
+  const [editKr, setEditKr] = useState<ApiKeyResultSummary | null>(null);
 
   function handleDelete() {
     if (!goal) return;
@@ -193,7 +206,12 @@ export default function GoalDetailScreen() {
               <Text variant="body" secondary>Nenhum resultado-chave cadastrado.</Text>
             ) : (
               goal.key_results.map((kr) => (
-                <KeyResultRow key={kr.id} kr={kr} onUpdate={() => setQuickKr(kr)} />
+                <KeyResultRow
+                  key={kr.id}
+                  kr={kr}
+                  onUpdate={() => setQuickKr(kr)}
+                  onEdit={() => setEditKr(kr)}
+                />
               ))
             )}
           </View>
@@ -204,6 +222,11 @@ export default function GoalDetailScreen() {
         visible={!!quickKr}
         onClose={() => setQuickKr(null)}
         keyResult={quickKr}
+      />
+      <EditKeyResultSheet
+        visible={!!editKr}
+        onClose={() => setEditKr(null)}
+        keyResult={editKr}
       />
     </SafeAreaView>
   );

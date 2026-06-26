@@ -252,3 +252,7 @@ Identidade visual moderna/minimalista: emojis de UI substituídos por ícones ou
 - **Escopo:** ~98 emojis trocados em ~30 arquivos: tab bar, perfil (RowItem+versão), EmptyState (prop icon: AppIconName), Checkbox, tarefas (TaskItem, create-task, task/[id], status/priority/date pickers, subtask, members, calendar/list selector), metas (metas, goal/[id], create/edit-meta, GoalCard, TrendIndicator, KpiTypePicker, CheckinHistory), auth (login/register/forgot), change-password, caldav, M365 states.
 - **NÃO alterado (conteúdo do usuário/branding):** emojis de categoria de meta (categories.ts), PRESET_ICONS de lista, greeting 👋, drag-handle; e launcher icon/splash/app.json/branding intactos.
 - 297 testes ok; tsc sem erros novos (baseline 57 pré-existentes). OTA.
+
+### FIX/FEAT — Metas: observação no check-in + editar resultado-chave (2026-06-26)
+- **FIX:** no QuickUpdateSheet o input de VALOR tinha onSubmitEditing=handleSave → ao tocar "OK" no teclado salvava e fechava antes de digitar a observação. Agora returnKeyType="next" + onSubmitEditing foca o campo OBSERVAÇÃO (blurOnSubmit=false); salvar só pelo botão.
+- **FEAT:** editar resultado-chave — novo `src/components/metas/EditKeyResultSheet.tsx` (título, tipo de KPI via KpiTypePicker, valor inicial, alvo, unidade; + excluir KR). Botão de editar (ícone) no header de cada KeyResultRow em goal/[id].tsx (useUpdateKeyResult/useDeleteKeyResult já existiam). 297 testes. OTA.

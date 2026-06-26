@@ -26,6 +26,7 @@ export function QuickUpdateSheet({ visible, onClose, keyResult }: QuickUpdateShe
   const [value, setValue] = useState('');
   const [note, setNote] = useState('');
   const inputRef = useRef<TextInput>(null);
+  const noteRef = useRef<TextInput>(null);
   const updateValue = useUpdateKeyResultValue();
 
   useEffect(() => {
@@ -83,8 +84,9 @@ export function QuickUpdateSheet({ visible, onClose, keyResult }: QuickUpdateShe
             value={value}
             onChangeText={setValue}
             keyboardType="numeric"
-            returnKeyType="done"
-            onSubmitEditing={valid ? handleSave : undefined}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => noteRef.current?.focus()}
             selectTextOnFocus
             placeholderTextColor={theme.colors.textTertiary}
             style={[
@@ -101,6 +103,7 @@ export function QuickUpdateSheet({ visible, onClose, keyResult }: QuickUpdateShe
         <View style={styles.field}>
           <Text variant="label" secondary>OBSERVAÇÃO</Text>
           <TextInput
+            ref={noteRef}
             value={note}
             onChangeText={setNote}
             multiline
