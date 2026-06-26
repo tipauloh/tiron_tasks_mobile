@@ -29,6 +29,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text as UIText } from '@/components/ui/Text';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { TaskItem } from '@/components/tasks/TaskItem';
+import { ListIcon } from '@/components/tasks/ListIcon';
 import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY, type TaskRow } from '@/components/tasks/CompletedSection';
 import {
   useTasks, useMyDay, useImportantTasks, useUpcomingTasks,
@@ -160,7 +161,7 @@ function ListPickerSheet({ visible, onClose, onSelect, lists }: {
             activeOpacity={0.7}
           >
             <View style={[styles.pickerSwatch, { backgroundColor: list.color ?? '#9CA3AF' }]}>
-              {list.icon ? <Text style={styles.pickerSwatchEmoji}>{list.icon}</Text> : null}
+              {list.icon ? <ListIcon icon={list.icon} size={15} color={list.color ?? theme.colors.textSecondary} /> : null}
             </View>
             <UIText variant="body" style={{ color: theme.colors.text, flex: 1 }}>{list.name}</UIText>
           </TouchableOpacity>
@@ -654,7 +655,7 @@ export default function TasksScreen() {
               }}
               delayLongPress={400}
             >
-              {list.icon ? <Text style={styles.listTabIcon}>{list.icon}</Text> : null}
+              {list.icon ? <ListIcon icon={list.icon} size={15} color={isActive ? '#FFFFFF' : (list.color ?? theme.colors.textSecondary)} /> : null}
               <Text style={[styles.listTabText, { color: isActive ? '#FFFFFF' : theme.colors.textSecondary }]}>{list.name}</Text>
             </Pressable>
           );
@@ -893,7 +894,6 @@ const styles = StyleSheet.create({
   listTabsContent: { paddingHorizontal: Spacing[4], paddingVertical: 10, gap: 8, flexDirection: 'row' },
   listTab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 9999, borderWidth: 1, gap: 4 },
   focusTab: { borderWidth: 1.5 },
-  listTabIcon: { fontSize: 13 },
   listTabText: { fontSize: 13, fontWeight: '500' },
   actionTab: { borderStyle: 'dashed' },
 
@@ -942,7 +942,6 @@ const styles = StyleSheet.create({
   // Picker de lista (BottomSheet)
   pickerOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth, gap: 14 },
   pickerSwatch: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  pickerSwatchEmoji: { fontSize: 16 },
 
   // Quick-add bottom bar + FAB
   bottomBarWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },

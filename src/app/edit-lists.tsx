@@ -14,6 +14,7 @@ import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { useTaskLists, useUpdateTaskList, useArchiveTaskList } from '@/hooks/api/use-task-lists';
 import { useFilterStore } from '@/store/filter-store';
+import { ListIcon } from '@/components/tasks/ListIcon';
 import type { ApiTaskListFull } from '@/infrastructure/api/types';
 
 export default function EditListsScreen() {
@@ -148,7 +149,7 @@ export default function EditListsScreen() {
             {/* Color dot */}
             <View style={[styles.colorDot, { backgroundColor: list.color ?? Colors.primary }]}>
               {list.icon ? (
-                <Text style={{ fontSize: 14 }}>{list.icon}</Text>
+                <ListIcon icon={list.icon} size={15} color={list.color ?? theme.colors.textSecondary} />
               ) : (
                 <Text style={{ fontSize: 11, color: '#fff', fontWeight: '700' }}>
                   {list.name.charAt(0).toUpperCase()}

@@ -21,6 +21,7 @@ import { FontSize, FontWeight } from '@/constants/typography';
 import type { TaskPriority } from '@/domain/entities';
 import { useCreateTask } from '@/hooks/api/use-tasks';
 import { useTaskLists } from '@/hooks/api/use-task-lists';
+import { ListIcon } from '@/components/tasks/ListIcon';
 import { CalendarPicker } from '@/components/tasks/CalendarPicker';
 import { TimeRangePicker } from '@/components/tasks/TimeRangePicker';
 import { RecurrencePicker } from '@/components/tasks/RecurrencePicker';
@@ -219,7 +220,7 @@ export default function CreateTaskScreen() {
                   const color = list.color ?? Colors.primary;
                   return (
                     <TouchableOpacity key={list.id} onPress={() => setSelectedListId(String(list.id))} style={[styles.chip, { backgroundColor: isActive ? color : theme.colors.surface, borderColor: isActive ? color : theme.colors.border }]} activeOpacity={0.7}>
-                      {list.icon ? <Text style={{ fontSize: 13 }}>{list.icon}</Text> : null}
+                      {list.icon ? <ListIcon icon={list.icon} size={14} color={list.color ?? theme.colors.textSecondary} /> : null}
                       <Text variant="caption" weight="semibold" style={{ color: isActive ? '#fff' : theme.colors.textSecondary }}>{list.name}</Text>
                     </TouchableOpacity>
                   );

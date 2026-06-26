@@ -94,6 +94,24 @@ export const APP_ICONS = {
   kpiWeight: { lib: 'feather', name: 'bar-chart-2' },
   kpiCustom: { lib: 'feather', name: 'edit-3' },
 
+  // Ícones de lista (escolhidos pelo usuário ao criar/editar uma lista)
+  listChecklist: { lib: 'feather', name: 'list' },
+  listHome: { lib: 'feather', name: 'home' },
+  listWork: { lib: 'feather', name: 'briefcase' },
+  listTarget: { lib: 'feather', name: 'target' },
+  listStar: { lib: 'feather', name: 'star' },
+  listBook: { lib: 'feather', name: 'book' },
+  listShopping: { lib: 'feather', name: 'shopping-cart' },
+  listFitness: { lib: 'feather', name: 'activity' },
+  listArt: { lib: 'ionicons', name: 'color-palette-outline' },
+  listGrowth: { lib: 'ionicons', name: 'leaf-outline' },
+  listTools: { lib: 'feather', name: 'tool' },
+  listTravel: { lib: 'ionicons', name: 'airplane-outline' },
+  listHeart: { lib: 'feather', name: 'heart' },
+  listMusic: { lib: 'feather', name: 'music' },
+  listCalendar: { lib: 'feather', name: 'calendar' },
+  listTag: { lib: 'feather', name: 'tag' },
+
   // Auth / segurança
   success: { lib: 'feather', name: 'check-circle' },
   login: { lib: 'feather', name: 'log-in' },

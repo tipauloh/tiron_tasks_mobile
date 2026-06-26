@@ -20,6 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { TaskItem } from '@/components/tasks/TaskItem';
+import { ListIcon } from '@/components/tasks/ListIcon';
 import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY } from '@/components/tasks/CompletedSection';
 import { useTasks, useMyDay, useImportantTasks, useUpcomingTasks, useDeleteTask, useToggleTaskStatus, useToggleFavorite, useCreateTask } from '@/hooks/api/use-tasks';
 import { useTaskLists, useArchiveTaskList } from '@/hooks/api/use-task-lists';
@@ -248,7 +249,7 @@ function ListTabs({
             }}
             delayLongPress={400}
           >
-            {list.icon ? <Text style={styles.listTabIcon}>{list.icon}</Text> : null}
+            {list.icon ? <ListIcon icon={list.icon} size={15} color={isActive ? '#FFFFFF' : (list.color ?? theme.colors.textSecondary)} /> : null}
             <Text style={[styles.listTabText, { color: isActive ? '#FFFFFF' : theme.colors.textSecondary }]}>{list.name}</Text>
           </Pressable>
         );
@@ -315,7 +316,6 @@ const styles = StyleSheet.create({
   listTabsScroll: { flexGrow: 0 },
   listTabsContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: 'row' },
   listTab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 9999, borderWidth: 1, gap: 4 },
-  listTabIcon: { fontSize: 13 },
   listTabText: { fontSize: 13, fontWeight: '500' },
   newListTab: { borderStyle: 'dashed' },
   filterScroll: { flexGrow: 0 },

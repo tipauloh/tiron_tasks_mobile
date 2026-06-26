@@ -9,6 +9,7 @@ import {
 import { useTheme } from '../../hooks/use-theme';
 import { BottomSheet } from '../ui/BottomSheet';
 import { AppIcon } from '../ui/AppIcon';
+import { ListIcon } from './ListIcon';
 import { useTaskLists } from '../../hooks/api/use-task-lists';
 
 export interface ListSelectorProps {
@@ -72,7 +73,7 @@ function RadioOption({ label, sublabel, icon, color, isSelected, onSelect, theme
       activeOpacity={0.7}
     >
       <View style={[styles.colorSwatch, { backgroundColor: color }]}>
-        {icon ? <Text style={styles.swatchEmoji}>{icon}</Text> : null}
+        {icon ? <ListIcon icon={icon} size={15} color="#FFFFFF" /> : null}
       </View>
       <View style={styles.optionText}>
         <Text style={[styles.optionLabel, { color: theme.colors.text, fontWeight: isSelected ? '600' : '400' }]}>{label}</Text>
@@ -104,7 +105,7 @@ export function ListSelectorTrigger({ value, onChange }: ListSelectorTriggerProp
         activeOpacity={0.7}
       >
         <View style={[styles.triggerSwatch, { backgroundColor: selectedList?.color ?? '#9CA3AF' }]}>
-          {selectedList?.icon ? <Text style={styles.swatchEmoji}>{selectedList.icon}</Text> : null}
+          {selectedList?.icon ? <ListIcon icon={selectedList.icon} size={16} color={selectedList.color ?? theme.colors.textSecondary} /> : null}
         </View>
         <Text style={[styles.triggerLabel, { color: theme.colors.text }]}>
           {selectedList ? selectedList.name : 'Sem lista'}

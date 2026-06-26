@@ -15,6 +15,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { AppIcon } from '@/components/ui/AppIcon';
+import { ListIcon, PRESET_LIST_ICONS } from '@/components/tasks/ListIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
@@ -24,11 +25,6 @@ const PRESET_COLORS = [
   '#208AEF', '#10B981', '#F59E0B', '#EF4444',
   '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16',
   '#F97316', '#6B7280',
-];
-
-const PRESET_ICONS = [
-  '📋', '🏠', '💼', '🎯', '⭐', '📚', '🛒',
-  '💪', '🎨', '🌱', '🔧', '✈️', '❤️', '🎵',
 ];
 
 export default function CreateListScreen() {
@@ -82,7 +78,7 @@ export default function CreateListScreen() {
           <View style={[styles.preview, { backgroundColor: theme.colors.surfaceElevated, borderColor: theme.colors.border }]}>
             <View style={[styles.previewIcon, { backgroundColor: selectedColor }]}>
               {selectedIcon ? (
-                <Text style={{ fontSize: 24 }}>{selectedIcon}</Text>
+                <ListIcon icon={selectedIcon} size={26} color={selectedColor} />
               ) : (
                 <Text style={{ fontSize: 18, color: '#fff', fontWeight: '700' }}>
                   {name.trim().charAt(0).toUpperCase() || 'L'}
@@ -146,7 +142,7 @@ export default function CreateListScreen() {
               )}
             </View>
             <View style={styles.iconGrid}>
-              {PRESET_ICONS.map((icon) => (
+              {PRESET_LIST_ICONS.map((icon) => (
                 <TouchableOpacity
                   key={icon}
                   onPress={() => setSelectedIcon(selectedIcon === icon ? null : icon)}
@@ -159,7 +155,7 @@ export default function CreateListScreen() {
                   ]}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ fontSize: 22 }}>{icon}</Text>
+                  <ListIcon icon={icon} size={22} color={selectedIcon === icon ? selectedColor : theme.colors.textSecondary} />
                 </TouchableOpacity>
               ))}
             </View>
