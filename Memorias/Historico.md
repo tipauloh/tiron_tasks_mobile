@@ -260,3 +260,8 @@ Identidade visual moderna/minimalista: emojis de UI substituídos por ícones ou
 ### FEAT/CHANGE — CalDAV vira EVENTOS (janela) + ícones categorias/E-mail Sinalizados (2026-06-26)
 - **CalDAV → VEVENT:** decisão do usuário — tarefas com horário agora viram EVENTOS com duração no app Calendário do iPhone (antes VTODO/Lembrete sem duração). Container: `ical.to_vevent` (janela DTSTART/DTEND; sem fim = 1h padrão; só data = all-day; sem data = None/não exposto), `item_to_ics` as_event=True default + Optional, storage `_build_item` Optional + get_all filtra, supported-component-set=VEVENT. API: component="VEVENT", schema default, `_FORMAT_VERSION='ev1'` (cache-bust). 16 testes. Container+API deployados. ⚠️ Usuário pode precisar REMOVER+RE-ADICIONAR a conta no iPhone (Apple cacheia o tipo VTODO→VEVENT da collection). Tarefas sem data deixam de aparecer; conclusão só no app Tiron.
 - **Ícones (continuação):** categorias de metas (categories.ts → icon: AppIconName cat*, exibido com cor da categoria em GoalCard/CategoryPicker/create-meta/edit-meta/goal); lista de sistema "E-mail Sinalizados" (is_system) ganhou ícone `flag` na barra/seletor de listas. OTA.
+
+### FEAT — CalDAV: alerta em todo evento + sufixo de concluída (2026-06-26)
+- **Alerta (VALARM):** todo VEVENT agora tem um alarme. Se a tarefa tem lembrete (task_reminders.remind_at), o alerta usa esse horário (TRIGGER relativo ao início, ex. -PT15M); senão, alerta na hora do evento (TRIGGER 0). API: CalendarItem.remind_at (subquery MIN remind_at em list_items/get_item). Container: ical._add_alarm.
+- **Concluída:** tarefas concluídas continuam aparecendo no calendário com sufixo " ✅" no título (ical._populate_common). 
+- Cache-bust _FORMAT_VERSION ev1→ev2 (re-sync). 17 testes. Container+API deployados.
