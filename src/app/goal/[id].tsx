@@ -164,7 +164,10 @@ export default function GoalDetailScreen() {
             <Text variant="title" weight="bold" style={{ color }}>{formatProgressPercent(goal.progress)}</Text>
           </CircularProgress>
           <View style={styles.goalHeadInfo}>
-            <Text style={{ fontSize: 18 }}>{cat.emoji} {goal.category}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <AppIcon name={cat.icon} size={18} color={cat.color} />
+              <Text variant="body">{goal.category}</Text>
+            </View>
             <Text variant="headline" weight="bold" numberOfLines={3}>{goal.title}</Text>
             <View style={styles.prazoRow}>
               <AppIcon name="calendar" size={13} color={theme.colors.textTertiary} />

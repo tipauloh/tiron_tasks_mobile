@@ -249,7 +249,7 @@ function ListTabs({
             }}
             delayLongPress={400}
           >
-            {list.icon ? <ListIcon icon={list.icon} size={15} color={isActive ? '#FFFFFF' : (list.color ?? theme.colors.textSecondary)} /> : null}
+            {list.is_system || list.icon ? <ListIcon icon={list.is_system ? 'flag' : list.icon!} size={15} color={isActive ? '#FFFFFF' : (list.color ?? theme.colors.textSecondary)} /> : null}
             <Text style={[styles.listTabText, { color: isActive ? '#FFFFFF' : theme.colors.textSecondary }]}>{list.name}</Text>
           </Pressable>
         );

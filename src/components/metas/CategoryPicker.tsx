@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text } from '@/components/ui/Text';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { useTheme } from '@/hooks/use-theme';
 import { Colors } from '@/constants/colors';
 import { Radius, Spacing } from '@/constants/spacing';
@@ -30,7 +31,7 @@ export function CategoryPicker({ visible, onClose, selected, onSelect }: Categor
               activeOpacity={0.7}
             >
               <View style={[styles.swatch, { backgroundColor: cat.color + '22' }]}>
-                <Text style={styles.emoji}>{cat.emoji}</Text>
+                <AppIcon name={cat.icon} size={20} color={cat.color} />
               </View>
               <Text variant="body" weight={isActive ? 'semibold' : 'regular'} style={{ flex: 1 }}>
                 {cat.value}
@@ -54,5 +55,4 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   swatch: { width: 36, height: 36, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 18 },
 });

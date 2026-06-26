@@ -39,7 +39,7 @@ export function GoalCard({ goal, onPress, primary }: GoalCardProps) {
       style={primary ? { borderColor: Colors.primary, borderWidth: 1.5 } : undefined}
     >
       <View style={styles.head}>
-        <Text style={styles.emoji}>{cat.emoji}</Text>
+        <AppIcon name={cat.icon} size={18} color={cat.color} />
         <View style={styles.titleBlock}>
           <Text variant="callout" weight="semibold" numberOfLines={2}>
             {goal.title}
@@ -69,7 +69,6 @@ export function GoalCard({ goal, onPress, primary }: GoalCardProps) {
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[3] },
-  emoji: { fontSize: 22 },
   titleBlock: { flex: 1, gap: 2 },
   bar: { marginTop: Spacing[3] },
   primaryTag: {

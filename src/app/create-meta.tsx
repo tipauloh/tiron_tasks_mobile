@@ -129,7 +129,11 @@ export default function CreateMetaScreen() {
               onPress={() => setShowCategory(true)}
               activeOpacity={0.7}
             >
-              <Text style={{ fontSize: 20 }}>{catMeta?.emoji ?? '🎯'}</Text>
+              {catMeta ? (
+                <AppIcon name={catMeta.icon} size={20} color={catMeta.color} />
+              ) : (
+                <AppIcon name="catOther" size={20} color={theme.colors.textTertiary} />
+              )}
               <Text variant="body" style={{ flex: 1, color: category ? theme.colors.text : theme.colors.textTertiary }}>
                 {category ?? 'Escolha uma categoria'}
               </Text>

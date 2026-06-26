@@ -161,7 +161,7 @@ function ListPickerSheet({ visible, onClose, onSelect, lists }: {
             activeOpacity={0.7}
           >
             <View style={[styles.pickerSwatch, { backgroundColor: list.color ?? '#9CA3AF' }]}>
-              {list.icon ? <ListIcon icon={list.icon} size={15} color={list.color ?? theme.colors.textSecondary} /> : null}
+              {list.is_system || list.icon ? <ListIcon icon={list.is_system ? 'flag' : list.icon!} size={15} color={list.color ?? theme.colors.textSecondary} /> : null}
             </View>
             <UIText variant="body" style={{ color: theme.colors.text, flex: 1 }}>{list.name}</UIText>
           </TouchableOpacity>
@@ -655,7 +655,7 @@ export default function TasksScreen() {
               }}
               delayLongPress={400}
             >
-              {list.icon ? <ListIcon icon={list.icon} size={15} color={isActive ? '#FFFFFF' : (list.color ?? theme.colors.textSecondary)} /> : null}
+              {list.is_system || list.icon ? <ListIcon icon={list.is_system ? 'flag' : list.icon!} size={15} color={isActive ? '#FFFFFF' : (list.color ?? theme.colors.textSecondary)} /> : null}
               <Text style={[styles.listTabText, { color: isActive ? '#FFFFFF' : theme.colors.textSecondary }]}>{list.name}</Text>
             </Pressable>
           );

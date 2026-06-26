@@ -94,6 +94,15 @@ export const APP_ICONS = {
   kpiWeight: { lib: 'feather', name: 'bar-chart-2' },
   kpiCustom: { lib: 'feather', name: 'edit-3' },
 
+  // Categorias de metas
+  catHealth: { lib: 'feather', name: 'activity' },
+  catWork: { lib: 'feather', name: 'briefcase' },
+  catStudies: { lib: 'feather', name: 'book' },
+  catFinance: { lib: 'feather', name: 'dollar-sign' },
+  catFamily: { lib: 'feather', name: 'users' },
+  catPersonal: { lib: 'ionicons', name: 'leaf-outline' },
+  catOther: { lib: 'feather', name: 'target' },
+
   // Ícones de lista (escolhidos pelo usuário ao criar/editar uma lista)
   listChecklist: { lib: 'feather', name: 'list' },
   listHome: { lib: 'feather', name: 'home' },

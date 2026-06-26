@@ -43,7 +43,7 @@ export function ListSelector({ value, onChange, visible, onClose }: ListSelector
           <RadioOption
             key={list.id}
             label={list.name}
-            icon={list.icon ?? undefined}
+            icon={list.is_system ? 'flag' : (list.icon ?? undefined)}
             color={list.color ?? '#9CA3AF'}
             isSelected={value === String(list.id)}
             onSelect={() => handleSelect(String(list.id))}
@@ -105,7 +105,7 @@ export function ListSelectorTrigger({ value, onChange }: ListSelectorTriggerProp
         activeOpacity={0.7}
       >
         <View style={[styles.triggerSwatch, { backgroundColor: selectedList?.color ?? '#9CA3AF' }]}>
-          {selectedList?.icon ? <ListIcon icon={selectedList.icon} size={16} color={selectedList.color ?? theme.colors.textSecondary} /> : null}
+          {selectedList && (selectedList.is_system || selectedList.icon) ? <ListIcon icon={selectedList.is_system ? 'flag' : selectedList.icon!} size={15} color="#FFFFFF" /> : null}
         </View>
         <Text style={[styles.triggerLabel, { color: theme.colors.text }]}>
           {selectedList ? selectedList.name : 'Sem lista'}
