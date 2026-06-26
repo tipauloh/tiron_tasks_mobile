@@ -269,3 +269,6 @@ Identidade visual moderna/minimalista: emojis de UI substituídos por ícones ou
 ### FEAT — KPIs de produtividade na aba Metas + ajustes CalDAV (2026-06-26)
 - **Produtividade:** faixa no topo da aba Metas com tarefas concluídas: Hoje, Mês, Ano, Sequência (streak de dias). Drill-down (+No card do Mês) abre BottomSheet "Concluídas por mês" (barras dos últimos 12 meses). Backend: GET /api/v1/tasks/productivity (task_service.get_productivity, períodos no fuso do usuário, completed_at em UTC; streak em Python). Mobile: ProductivityStrip + useProductivity (invalida ao concluir tarefa).
 - **CalDAV:** alerta padrão (sem lembrete) mudou de "na hora" para **15 min antes**; sufixo de concluída ✅→" (concluída)" (texto sutil, o emoji ficava desproporcional). _FORMAT_VERSION→ev4.
+
+### FIX — Fuso do ALERTA do CalDAV (1h deslocado) (2026-06-26)
+O remind_at é salvo no fuso do USUÁRIO (ex. Cuiabá -4), mas o start_time do evento é canônico (-3). O gatilho do alarme (remind - start) somava o delta de fuso → alerta 1h deslocado. Correção: a API converte o remind_at do fuso do usuário (mobile_users.timezone) para o canônico (America/Sao_Paulo) na query (AT TIME ZONE :utz AT TIME ZONE 'America/Sao_Paulo'), igual ao start_time. Helper caldav_service._user_timezone. _FORMAT_VERSION→ev5. Deployado.
