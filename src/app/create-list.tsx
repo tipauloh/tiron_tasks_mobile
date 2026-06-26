@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
@@ -127,7 +128,7 @@ export default function CreateListScreen() {
                   activeOpacity={0.7}
                 >
                   {selectedColor === color && (
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>✓</Text>
+                    <AppIcon name="check" size={14} color="#fff" />
                   )}
                 </TouchableOpacity>
               ))}

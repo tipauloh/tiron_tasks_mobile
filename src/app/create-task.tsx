@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
@@ -50,17 +51,17 @@ function getDueDate(key: DateShortcut, custom: Date | null): string | undefined 
   return undefined;
 }
 
-const DATE_SHORTCUTS: Array<{ key: DateShortcut; label: string; emoji: string }> = [
-  { key: 'none', label: 'Sem data', emoji: '—' },
-  { key: 'today', label: 'Hoje', emoji: '📅' },
-  { key: 'tomorrow', label: 'Amanhã', emoji: '🌅' },
+const DATE_SHORTCUTS: Array<{ key: DateShortcut; label: string; icon: AppIconName }> = [
+  { key: 'none', label: 'Sem data', icon: 'close' },
+  { key: 'today', label: 'Hoje', icon: 'calendar' },
+  { key: 'tomorrow', label: 'Amanhã', icon: 'sunrise' },
 ];
 
-const PRIORITY_OPTIONS: Array<{ value: TaskPriority; label: string; color: string; emoji: string }> = [
-  { value: 'low', label: 'Baixa', color: Colors.priorityLow, emoji: '🔽' },
-  { value: 'normal', label: 'Normal', color: Colors.priorityNormal, emoji: '➡️' },
-  { value: 'high', label: 'Alta', color: Colors.priorityHigh, emoji: '🔼' },
-  { value: 'critical', label: 'Crítica', color: Colors.priorityCritical, emoji: '🚨' },
+const PRIORITY_OPTIONS: Array<{ value: TaskPriority; label: string; color: string; icon: AppIconName }> = [
+  { value: 'low', label: 'Baixa', color: Colors.priorityLow, icon: 'priorityLow' },
+  { value: 'normal', label: 'Normal', color: Colors.priorityNormal, icon: 'priorityNormal' },
+  { value: 'high', label: 'Alta', color: Colors.priorityHigh, icon: 'priorityHigh' },
+  { value: 'critical', label: 'Crítica', color: Colors.priorityCritical, icon: 'priorityCritical' },
 ];
 
 function SectionLabel({ label }: { label: string }) {
@@ -234,7 +235,7 @@ export default function CreateTaskScreen() {
                 const isActive = priority === opt.value;
                 return (
                   <TouchableOpacity key={opt.value} onPress={() => setPriority(opt.value)} style={[styles.priorityOption, { backgroundColor: isActive ? opt.color : theme.colors.surface, borderColor: isActive ? opt.color : theme.colors.border, flex: 1 }]} activeOpacity={0.7}>
-                    <Text style={{ fontSize: 16 }}>{opt.emoji}</Text>
+                    <AppIcon name={opt.icon} size={16} color={isActive ? '#fff' : opt.color} />
                     <Text variant="label" weight={isActive ? 'semibold' : 'regular'} style={{ color: isActive ? '#fff' : theme.colors.textSecondary }}>{opt.label}</Text>
                   </TouchableOpacity>
                 );
@@ -254,7 +255,7 @@ export default function CreateTaskScreen() {
                     style={[styles.dateOption, { backgroundColor: isActive ? Colors.primary + '15' : theme.colors.surface, borderColor: isActive ? Colors.primary : theme.colors.border, flex: 1 }]}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 18 }}>{d.emoji}</Text>
+                    <AppIcon name={d.icon} size={18} color={isActive ? Colors.primary : theme.colors.textSecondary} />
                     <Text variant="caption" weight={isActive ? 'semibold' : 'regular'} style={{ color: isActive ? Colors.primary : theme.colors.textSecondary }}>{d.label}</Text>
                   </TouchableOpacity>
                 );
@@ -269,7 +270,7 @@ export default function CreateTaskScreen() {
                 }]}
                 activeOpacity={0.7}
               >
-                <Text style={{ fontSize: 18 }}>🗓️</Text>
+                <AppIcon name="calendar" size={18} color={dateShortcut === 'custom' ? Colors.primary : theme.colors.textSecondary} />
                 <Text
                   variant="caption"
                   weight={dateShortcut === 'custom' ? 'semibold' : 'regular'}

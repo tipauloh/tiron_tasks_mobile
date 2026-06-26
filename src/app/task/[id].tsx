@@ -15,6 +15,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
@@ -38,18 +39,18 @@ import { useTimezone } from '@/hooks/use-timezone';
 import { displaySchedule, toCanonicalSchedule } from '@/utils/timezone';
 import type { ApiRecurrence } from '@/infrastructure/api/types';
 
-const STATUS_OPTIONS: Array<{ value: TaskStatus; label: string; color: string; emoji: string }> = [
-  { value: 'not_started', label: 'Não iniciada', color: Colors.statusNotStarted, emoji: '⭕' },
-  { value: 'in_progress', label: 'Em andamento', color: Colors.statusInProgress, emoji: '🔵' },
-  { value: 'completed', label: 'Concluída', color: Colors.statusCompleted, emoji: '✅' },
-  { value: 'cancelled', label: 'Cancelada', color: Colors.statusCancelled, emoji: '🚫' },
+const STATUS_OPTIONS: Array<{ value: TaskStatus; label: string; color: string; icon: AppIconName }> = [
+  { value: 'not_started', label: 'Não iniciada', color: Colors.statusNotStarted, icon: 'statusNotStarted' },
+  { value: 'in_progress', label: 'Em andamento', color: Colors.statusInProgress, icon: 'statusInProgress' },
+  { value: 'completed', label: 'Concluída', color: Colors.statusCompleted, icon: 'statusCompleted' },
+  { value: 'cancelled', label: 'Cancelada', color: Colors.statusCancelled, icon: 'statusCancelled' },
 ];
 
-const PRIORITY_OPTIONS: Array<{ value: TaskPriority; label: string; color: string; emoji: string }> = [
-  { value: 'low', label: 'Baixa', color: Colors.priorityLow, emoji: '🔽' },
-  { value: 'normal', label: 'Normal', color: Colors.priorityNormal, emoji: '➡️' },
-  { value: 'high', label: 'Alta', color: Colors.priorityHigh, emoji: '🔼' },
-  { value: 'critical', label: 'Crítica', color: Colors.priorityCritical, emoji: '🚨' },
+const PRIORITY_OPTIONS: Array<{ value: TaskPriority; label: string; color: string; icon: AppIconName }> = [
+  { value: 'low', label: 'Baixa', color: Colors.priorityLow, icon: 'priorityLow' },
+  { value: 'normal', label: 'Normal', color: Colors.priorityNormal, icon: 'priorityNormal' },
+  { value: 'high', label: 'Alta', color: Colors.priorityHigh, icon: 'priorityHigh' },
+  { value: 'critical', label: 'Crítica', color: Colors.priorityCritical, icon: 'priorityCritical' },
 ];
 
 function recurrenceLabel(frequency: string): string {
@@ -247,7 +248,7 @@ export default function TaskDetailScreen() {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
         <View style={styles.notFound}>
-          <Text style={{ fontSize: 48 }}>🔍</Text>
+          <AppIcon name="search" size={48} color={theme.colors.textTertiary} />
           <Text variant="headline" weight="semibold">Tarefa não encontrada</Text>
           <Button title="Voltar" onPress={() => router.back()} variant="ghost" />
         </View>
@@ -298,7 +299,7 @@ export default function TaskDetailScreen() {
                 return (
                   <TouchableOpacity key={opt.value} onPress={() => { setStatus(opt.value); setIsDirty(true); }}
                     style={[styles.selectorOption, { borderColor: isActive ? opt.color : theme.colors.border, backgroundColor: isActive ? opt.color + '20' : theme.colors.surface }]} activeOpacity={0.7}>
-                    <Text style={{ fontSize: 16 }}>{opt.emoji}</Text>
+                    <AppIcon name={opt.icon} size={16} color={isActive ? opt.color : theme.colors.textTertiary} />
                     <Text variant="caption" weight={isActive ? 'semibold' : 'regular'} style={{ color: isActive ? opt.color : theme.colors.textSecondary }}>{opt.label}</Text>
                   </TouchableOpacity>
                 );
@@ -314,7 +315,7 @@ export default function TaskDetailScreen() {
                 return (
                   <TouchableOpacity key={opt.value} onPress={() => { setPriority(opt.value); setIsDirty(true); }}
                     style={[styles.priorityOption, { borderColor: isActive ? opt.color : theme.colors.border, backgroundColor: isActive ? opt.color : theme.colors.surface, flex: 1 }]} activeOpacity={0.7}>
-                    <Text style={{ fontSize: 14 }}>{opt.emoji}</Text>
+                    <AppIcon name={opt.icon} size={14} color={isActive ? '#fff' : opt.color} />
                     <Text variant="label" style={{ color: isActive ? '#fff' : theme.colors.textSecondary }}>{opt.label}</Text>
                   </TouchableOpacity>
                 );
@@ -337,7 +338,7 @@ export default function TaskDetailScreen() {
               onPress={() => setShowCalendar(true)}
               activeOpacity={0.7}
             >
-              <Text style={{ fontSize: 16 }}>📅</Text>
+              <AppIcon name="calendar" size={16} color={dueDate ? theme.colors.text : theme.colors.textTertiary} />
               <Text variant="body" style={{ flex: 1, color: dueDate ? theme.colors.text : theme.colors.textTertiary }}>
                 {dueDate
                   ? dueDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
@@ -387,7 +388,7 @@ export default function TaskDetailScreen() {
                       key={r.id}
                       style={[styles.reminderRow, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
                     >
-                      <Text style={{ fontSize: 16 }}>{recurrence ? '🔁' : '🔔'}</Text>
+                      <AppIcon name={recurrence ? 'repeat' : 'bell'} size={16} color={theme.colors.textSecondary} />
                       <View style={{ flex: 1 }}>
                         <Text variant="body" style={{ color: theme.colors.text }}>
                           {recurrence ? 'Horário do lembrete: ' : ''}
@@ -461,7 +462,7 @@ export default function TaskDetailScreen() {
               <SectionLabel label="E-mail sinalizado" />
               <View style={[styles.emailCard, { backgroundColor: theme.colors.surface, borderColor: Colors.primary + '40' }]}>
                 <View style={styles.emailHead}>
-                  <Text style={{ fontSize: 18 }}>🚩</Text>
+                  <AppIcon name="flag" size={18} color={Colors.primary} />
                   <View style={{ flex: 1, gap: 2 }}>
                     {task.email.email_from ? (
                       <Text variant="caption" secondary numberOfLines={1}>{task.email.email_from}</Text>

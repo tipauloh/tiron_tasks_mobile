@@ -5,6 +5,7 @@ import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { useTheme } from '@/hooks/use-theme';
 import { CalendarPicker } from '@/components/tasks/CalendarPicker';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { maskTime, isValidTime } from '@/utils/time';
 
 export type ReminderOptionKey =
@@ -138,7 +139,7 @@ export function ReminderPicker({
             onPress={() => setShowCalendar(true)}
             activeOpacity={0.7}
           >
-            <Text style={{ fontSize: 16 }}>📅</Text>
+            <AppIcon name="calendar" size={16} color={customDate ? theme.colors.text : theme.colors.textTertiary} />
             <Text variant="body" style={{ flex: 1, color: customDate ? theme.colors.text : theme.colors.textTertiary }}>
               {customDate
                 ? customDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })

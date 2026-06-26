@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../hooks/use-theme';
 import { BottomSheet } from '../ui/BottomSheet';
+import { AppIcon, type AppIconName } from '../ui/AppIcon';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ interface DateOption {
   key: string;
   label: string;
   sublabel: string;
-  icon: string;
+  icon: AppIconName;
   date: string | undefined;
 }
 
@@ -50,28 +51,28 @@ function buildDateOptions(): DateOption[] {
       key: 'today',
       label: 'Hoje',
       sublabel: formatShort(now),
-      icon: '☀️',
+      icon: 'sun',
       date: toISODate(now),
     },
     {
       key: 'tomorrow',
       label: 'Amanhã',
       sublabel: formatShort(tomorrowDate),
-      icon: '🌅',
+      icon: 'sunrise',
       date: toISODate(tomorrowDate),
     },
     {
       key: 'next_week',
       label: 'Próxima semana',
       sublabel: formatShort(nextWeekDate),
-      icon: '📅',
+      icon: 'calendar',
       date: toISODate(nextWeekDate),
     },
     {
       key: 'no_date',
       label: 'Sem data',
       sublabel: 'Remover prazo',
-      icon: '✕',
+      icon: 'close',
       date: undefined,
     },
   ];
@@ -115,7 +116,13 @@ export function DatePickerSheet({
               onPress={() => handleSelect(opt.date)}
               activeOpacity={0.7}
             >
-              <Text style={styles.optionIcon}>{opt.icon}</Text>
+              <View style={styles.optionIcon}>
+                <AppIcon
+                  name={opt.icon}
+                  size={20}
+                  color={isDestructive ? theme.colors.danger : theme.colors.textSecondary}
+                />
+              </View>
 
               <View style={styles.optionText}>
                 <Text
@@ -142,11 +149,7 @@ export function DatePickerSheet({
               </View>
 
               {isSelected && (
-                <Text
-                  style={[styles.checkmark, { color: theme.colors.primary }]}
-                >
-                  ✓
-                </Text>
+                <AppIcon name="check" size={16} color={theme.colors.primary} />
               )}
             </TouchableOpacity>
           );
@@ -171,9 +174,9 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   optionIcon: {
-    fontSize: 22,
     width: 28,
-    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   optionText: {
     flex: 1,
@@ -184,9 +187,5 @@ const styles = StyleSheet.create({
   optionSublabel: {
     fontSize: 13,
     marginTop: 2,
-  },
-  checkmark: {
-    fontSize: 16,
-    fontWeight: '700',
   },
 });

@@ -12,7 +12,7 @@ interface Props {
 export function MicrosoftEmptyState({ title, description, actionLabel, onAction }: Props) {
   return (
     <EmptyState
-      icon="📭"
+      icon="inbox"
       title={title ?? 'Nada sincronizado ainda'}
       description={
         description ??

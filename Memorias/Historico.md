@@ -245,3 +245,10 @@ Horários sincronizados via CalDAV apareciam 3h a menos no iPhone (ex.: 08h no a
 - **Histórico de progressão dos KRs:** cada atualização de valor já gravava um check-in (goal_checkins); agora há GET /key-results/{krId}/checkins (backend novo: schema KeyResultCheckinResponse + goal_service.list_key_result_checkins). Mobile: tipo ApiKeyResultCheckin, goalApi.keyResultHistory, useKeyResultHistory, componente `CheckinHistory.tsx` (colapsável, começa fechado, lista valor + data/hora pt-BR).
 - **Observação no check-in:** coluna `goal_checkins.note` (migração); KeyResultValueRequest+note; QuickUpdateSheet ganhou campo "Observação" (opcional, multiline, "o que fez para evoluir"); CheckinHistory exibe a nota. 297 testes.
 - Backend deployado; mobile OTA. Editor/Metas só no runtime 1.1.0 (build TestFlight).
+
+### REFACTOR — Reestilização dos ícones internos da UI (2026-06-25)
+Identidade visual moderna/minimalista: emojis de UI substituídos por ícones outline consistentes (Feather/Ionicons via @expo/vector-icons — sem react-native-svg, OTA-friendly).
+- **Sistema central:** `src/components/ui/AppIcon.tsx` — `<AppIcon name=… size color />` com mapa `APP_ICONS` (nome semântico → Feather/Ionicons). Nenhuma tela usa ícone direto; cor via theme.
+- **Escopo:** ~98 emojis trocados em ~30 arquivos: tab bar, perfil (RowItem+versão), EmptyState (prop icon: AppIconName), Checkbox, tarefas (TaskItem, create-task, task/[id], status/priority/date pickers, subtask, members, calendar/list selector), metas (metas, goal/[id], create/edit-meta, GoalCard, TrendIndicator, KpiTypePicker, CheckinHistory), auth (login/register/forgot), change-password, caldav, M365 states.
+- **NÃO alterado (conteúdo do usuário/branding):** emojis de categoria de meta (categories.ts), PRESET_ICONS de lista, greeting 👋, drag-handle; e launcher icon/splash/app.json/branding intactos.
+- 297 testes ok; tsc sem erros novos (baseline 57 pré-existentes). OTA.

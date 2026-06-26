@@ -27,6 +27,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text as UIText } from '@/components/ui/Text';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY, type TaskRow } from '@/components/tasks/CompletedSection';
 import {
@@ -209,7 +210,7 @@ function TaskItemSwipeable({ task, onToggle, onPress, onFavorite, onDelete, onMo
       <TouchableOpacity activeOpacity={0.7} onPress={onPress} onLongPress={onLongPress} delayLongPress={300}>
         <View style={[styles.selectRow, selected && { backgroundColor: Colors.primary + '14' }]}>
           <View style={[styles.selectIndicator, { borderColor: selected ? Colors.primary : theme.colors.border, backgroundColor: selected ? Colors.primary : 'transparent' }]}>
-            {selected && <Text style={styles.selectCheck}>✓</Text>}
+            {selected && <AppIcon name="check" size={13} color="#FFFFFF" />}
           </View>
           <View pointerEvents="none" style={{ flex: 1 }}>
             <TaskItem task={task} onToggle={onToggle} onPress={onPress} onFavorite={onFavorite} isLast={isLast} />
@@ -596,7 +597,7 @@ export default function TasksScreen() {
           </Text>
         </View>
         <View style={[styles.searchBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <AppIcon name="search" size={14} color={theme.colors.textTertiary} />
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -624,7 +625,7 @@ export default function TasksScreen() {
           style={[styles.listTab, styles.focusTab, { backgroundColor: isFocus ? FOCUS_COLOR : theme.colors.surface, borderColor: isFocus ? FOCUS_COLOR : FOCUS_COLOR + '55' }]}
           onPress={() => { setActiveListId(FOCUS_LIST_ID); setViewMode('all'); }}
         >
-          <Text style={styles.listTabIcon}>🎯</Text>
+          <AppIcon name="star" size={13} color={isFocus ? '#FFFFFF' : FOCUS_COLOR} />
           <Text style={[styles.listTabText, { color: isFocus ? '#FFFFFF' : FOCUS_COLOR, fontWeight: '600' }]}>Em Foco</Text>
         </Pressable>
 
@@ -668,7 +669,7 @@ export default function TasksScreen() {
           style={[styles.listTab, styles.actionTab, { borderColor: theme.colors.border }]}
           onPress={() => router.push('/edit-lists' as never)}
         >
-          <Text style={styles.editIcon}>✏️</Text>
+          <AppIcon name="edit" size={13} color={theme.colors.textSecondary} />
           <Text style={[styles.listTabText, { color: theme.colors.textSecondary }]}>Editar listas</Text>
         </Pressable>
       </ScrollView>
@@ -757,7 +758,7 @@ export default function TasksScreen() {
         ListEmptyComponent={
           isLoading ? null : (
             <EmptyState
-              icon="✅"
+              icon="emptyDone"
               title="Nenhuma tarefa"
               description={isSearching ? 'Nenhum resultado para a busca' : 'Crie sua primeira tarefa para começar'}
               actionLabel={isSearching ? undefined : '+ Nova tarefa'}
@@ -830,7 +831,7 @@ export default function TasksScreen() {
             onPress={() => router.push('/create-task' as never)}
             activeOpacity={0.85}
           >
-            <Text style={styles.fabIcon}>+</Text>
+            <AppIcon name="plus" size={28} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -867,7 +868,6 @@ const styles = StyleSheet.create({
     minWidth: 140,
     maxWidth: 160,
   },
-  searchIcon: { fontSize: 14 },
   searchInput: { flex: 1, fontSize: 14, padding: 0 },
 
   // Stat cards — fixed row, fills full width
@@ -896,7 +896,6 @@ const styles = StyleSheet.create({
   listTabIcon: { fontSize: 13 },
   listTabText: { fontSize: 13, fontWeight: '500' },
   actionTab: { borderStyle: 'dashed' },
-  editIcon: { fontSize: 13 },
 
   // Reorder (arraste) — linha com o punho (⠿) à direita, fora do Swipeable.
   reorderRow: { flexDirection: 'row', alignItems: 'stretch' },
@@ -927,7 +926,6 @@ const styles = StyleSheet.create({
   // Seleção múltipla — linha selecionável (indicador à esquerda)
   selectRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: Spacing[4] },
   selectIndicator: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  selectCheck: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', lineHeight: 15 },
 
   // Barra de ações em massa (rodapé)
   selectionBar: {
@@ -953,5 +951,4 @@ const styles = StyleSheet.create({
   quickAddInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   quickAddSend: { fontSize: 14, fontWeight: '600' },
   fab: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  fabIcon: { color: '#FFFFFF', fontSize: 28, lineHeight: 32, fontWeight: '400' },
 });

@@ -1,10 +1,11 @@
 import { Tabs } from 'expo-router/js-tabs';
-import { Platform, Text } from 'react-native';
+import { Platform, type ColorValue } from 'react-native';
 import { useColorScheme } from 'react-native';
 import { Colors } from '@/constants/colors';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 
-function TabBarIcon({ emoji }: { emoji: string }) {
-  return <Text style={{ fontSize: 22 }}>{emoji}</Text>;
+function TabBarIcon({ name, color }: { name: AppIconName; color: ColorValue }) {
+  return <AppIcon name={name} color={color} size={23} />;
 }
 
 export default function TabsLayout() {
@@ -30,28 +31,28 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Tarefas',
-          tabBarIcon: () => <TabBarIcon emoji="✅" />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="tasks" color={color} />,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
           title: 'Calendário',
-          tabBarIcon: () => <TabBarIcon emoji="🗓️" />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen
         name="metas"
         options={{
           title: 'Metas',
-          tabBarIcon: () => <TabBarIcon emoji="🎯" />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="goals" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',
-          tabBarIcon: () => <TabBarIcon emoji="👤" />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="profile" color={color} />,
         }}
       />
       {/* Arquivos legados mantidos como rotas mas ocultos do tab bar */}

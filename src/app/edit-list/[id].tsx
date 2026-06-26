@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
@@ -153,7 +154,10 @@ export default function EditListScreen() {
               {name.trim() || 'Nome da lista'}
             </Text>
             {list?.shared && (
-              <Text variant="caption" secondary style={{ marginLeft: 'auto' }}>👥 Compartilhada</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing[1], marginLeft: 'auto' }}>
+                <AppIcon name="members" size={13} color={theme.colors.textSecondary} />
+                <Text variant="caption" secondary>Compartilhada</Text>
+              </View>
             )}
           </View>
 
@@ -190,7 +194,7 @@ export default function EditListScreen() {
                   activeOpacity={0.7}
                 >
                   {selectedColor === color && (
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>✓</Text>
+                    <AppIcon name="check" size={14} color="#fff" />
                   )}
                 </TouchableOpacity>
               ))}

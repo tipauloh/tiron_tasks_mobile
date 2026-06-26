@@ -10,7 +10,7 @@ interface Props {
 export function MicrosoftErrorState({ message, onRetry }: Props) {
   return (
     <EmptyState
-      icon="⚠️"
+      icon="warning"
       title="Algo deu errado"
       description={message ?? 'Não foi possível completar a operação. Tente novamente.'}
       actionLabel={onRetry ? 'Tentar novamente' : undefined}

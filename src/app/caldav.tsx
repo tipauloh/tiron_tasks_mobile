@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/use-theme';
 import { Text, Button, Card } from '@/components/ui';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { CALDAV_SERVER_URL } from '@/infrastructure/api/caldav-api';
@@ -80,9 +81,11 @@ function Collapsible({
         <Text variant="callout" weight="semibold">
           {title}
         </Text>
-        <Text style={{ color: theme.colors.textTertiary, fontSize: 18 }}>
-          {open ? '⌄' : '›'}
-        </Text>
+        <AppIcon
+          name={open ? 'chevronDown' : 'chevronRight'}
+          size={18}
+          color={theme.colors.textTertiary}
+        />
       </TouchableOpacity>
       {open ? <View style={styles.collapsibleBody}>{children}</View> : null}
     </Card>
@@ -163,7 +166,9 @@ export default function CaldavScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {!hasToken ? (
           <View style={styles.disconnected}>
-            <Text style={styles.heroIcon}>📆</Text>
+            <View style={styles.heroIcon}>
+            <AppIcon name="caldav" size={56} color={Colors.primary} />
+          </View>
             <Text variant="title" weight="bold" style={styles.heroTitle}>
               CalDAV
             </Text>
@@ -290,7 +295,7 @@ const styles = StyleSheet.create({
   },
   scroll: { padding: Spacing[4], gap: Spacing[4], paddingBottom: Spacing[12] },
   disconnected: { alignItems: 'center', paddingVertical: Spacing[8], gap: Spacing[2] },
-  heroIcon: { fontSize: 56, marginBottom: Spacing[2] },
+  heroIcon: { marginBottom: Spacing[2] },
   heroTitle: { textAlign: 'center' },
   heroText: {
     textAlign: 'center',

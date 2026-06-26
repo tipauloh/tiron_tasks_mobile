@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
 import { TaskPriority } from '../../domain/entities';
+import { AppIcon } from './AppIcon';
 
 interface CheckboxProps {
   checked: boolean;
@@ -65,9 +66,9 @@ export function Checkbox({ checked, onToggle, priority = 'normal' }: CheckboxPro
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.8} hitSlop={8}>
       <Animated.View style={[styles.checkbox, containerAnimatedStyle]}>
-        <Animated.Text style={[styles.checkmark, checkAnimatedStyle]}>
-          ✓
-        </Animated.Text>
+        <Animated.View style={checkAnimatedStyle}>
+          <AppIcon name="check" size={14} color="#FFFFFF" />
+        </Animated.View>
       </Animated.View>
     </TouchableOpacity>
   );

@@ -11,6 +11,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -115,7 +116,7 @@ export default function GoalDetailScreen() {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
         <View style={styles.center}>
-          <Text style={{ fontSize: 48 }}>🔍</Text>
+          <AppIcon name="noResults" size={48} color={theme.colors.textTertiary} />
           <Text variant="headline" weight="semibold">Meta não encontrada</Text>
           <Button title="Voltar" onPress={() => router.back()} variant="ghost" />
         </View>
@@ -152,7 +153,10 @@ export default function GoalDetailScreen() {
           <View style={styles.goalHeadInfo}>
             <Text style={{ fontSize: 18 }}>{cat.emoji} {goal.category}</Text>
             <Text variant="headline" weight="bold" numberOfLines={3}>{goal.title}</Text>
-            <Text variant="caption" tertiary>🗓️ {formatPrazo(goal.end_date)}</Text>
+            <View style={styles.prazoRow}>
+              <AppIcon name="calendar" size={13} color={theme.colors.textTertiary} />
+              <Text variant="caption" tertiary>{formatPrazo(goal.end_date)}</Text>
+            </View>
           </View>
         </Card>
 
@@ -169,7 +173,7 @@ export default function GoalDetailScreen() {
           disabled={goal.is_primary || setPrimary.isPending}
           activeOpacity={0.8}
         >
-          <Text style={{ fontSize: 16 }}>⭐</Text>
+          <AppIcon name="star" size={16} color={goal.is_primary ? '#FFFFFF' : theme.colors.text} />
           <Text
             variant="body"
             weight="semibold"
@@ -213,6 +217,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing[4] },
   goalHeadCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing[4] },
   goalHeadInfo: { flex: 1, gap: Spacing[1] },
+  prazoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[1] },
   primaryToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing[2], paddingVertical: Spacing[3], borderRadius: Radius.lg, borderWidth: 1.5 },
   section: { gap: Spacing[2] },
   krHead: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[2] },

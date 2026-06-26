@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Radius, Spacing } from '@/constants/spacing';
 import { useKeyResultHistory } from '@/hooks/api/use-goals';
@@ -39,9 +40,7 @@ export function CheckinHistory({ krId, kpiType, unit }: Props) {
         <Text variant="caption" weight="semibold" style={{ color: theme.colors.textSecondary, flex: 1 }}>
           Histórico de progresso
         </Text>
-        <Text style={{ color: theme.colors.textTertiary, fontSize: 14 }}>
-          {isOpen ? '⌃' : '⌄'}
-        </Text>
+        <AppIcon name={isOpen ? 'chevronUp' : 'chevronDown'} size={16} color={theme.colors.textTertiary} />
       </TouchableOpacity>
 
       {isOpen && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text } from '../../../components/ui';
+import { AppIcon } from '../../../components/ui/AppIcon';
 import { useTheme } from '../../../hooks/use-theme';
 import { Colors } from '../../../constants/colors';
 import { Spacing } from '../../../constants/spacing';
@@ -18,7 +19,8 @@ export function MicrosoftEmailItem({ item }: Props) {
   return (
     <Card padding={3}>
       <View style={styles.headerRow}>
-        <Text style={styles.flag}>🚩</Text>
+        <AppIcon name="flag" size={14} color={Colors.danger} />
+
         <Text variant="caption" secondary numberOfLines={1} style={{ flex: 1 }}>
           {item.emailFrom ?? 'Remetente desconhecido'}
         </Text>
@@ -43,6 +45,5 @@ export function MicrosoftEmailItem({ item }: Props) {
 
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
-  flag: { fontSize: 14 },
   unreadDot: { width: 8, height: 8, borderRadius: 4 },
 });

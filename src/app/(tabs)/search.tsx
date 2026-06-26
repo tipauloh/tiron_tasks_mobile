@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY } from '@/components/tasks/CompletedSection';
 import { useFilterStore } from '@/store/filter-store';
 import { Colors } from '@/constants/colors';
@@ -113,7 +114,7 @@ export default function SearchScreen() {
           autoCapitalize="none"
           returnKeyType="search"
           clearButtonMode="while-editing"
-          leftIcon={<Text style={{ fontSize: 16 }}>🔍</Text>}
+          leftIcon={<AppIcon name="search" size={16} color={theme.colors.textTertiary} />}
           containerStyle={{ flex: 1 }}
         />
         {hasQuery && (
@@ -125,7 +126,9 @@ export default function SearchScreen() {
 
       {!hasQuery ? (
         <View style={styles.placeholderContainer}>
-          <Text style={styles.placeholderEmoji}>🔍</Text>
+          <View style={styles.placeholderEmoji}>
+            <AppIcon name="search" size={48} color={theme.colors.textTertiary} />
+          </View>
           <Text variant="headline" weight="semibold" style={styles.placeholderTitle}>Buscar tarefas</Text>
           <Text variant="body" secondary style={styles.placeholderSub}>Digite para buscar por título ou descrição</Text>
         </View>
@@ -146,7 +149,7 @@ export default function SearchScreen() {
           refreshing={isFetching}
           ListEmptyComponent={
             !isFetching ? (
-              <EmptyState title="Nenhum resultado" description={`Não encontramos tarefas com "${query}"`} icon="😕" />
+              <EmptyState title="Nenhum resultado" description={`Não encontramos tarefas com "${query}"`} icon="noResults" />
             ) : null
           }
           ListHeaderComponent={results.length > 0 ? <Text variant="caption" secondary style={styles.resultCount}>{results.length} resultado{results.length !== 1 ? 's' : ''}</Text> : null}
@@ -170,7 +173,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2], flexWrap: 'wrap' },
   statusBadge: { paddingHorizontal: Spacing[1.5], paddingVertical: 2, borderRadius: Radius.full },
   placeholderContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing[8], gap: Spacing[2] },
-  placeholderEmoji: { fontSize: 48, marginBottom: Spacing[2] },
+  placeholderEmoji: { marginBottom: Spacing[2] },
   placeholderTitle: { textAlign: 'center' },
   placeholderSub: { textAlign: 'center', lineHeight: 22 },
 });

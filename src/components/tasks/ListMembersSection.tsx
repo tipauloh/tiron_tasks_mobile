@@ -6,6 +6,7 @@ import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize } from '@/constants/typography';
 import { useTheme } from '@/hooks/use-theme';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { useListMembers, useAddMember, useRemoveMember } from '@/hooks/api/use-task-lists';
 import { ApiError } from '@/infrastructure/api/client';
 import type { TaskListRole } from '@/infrastructure/api/types';
@@ -70,7 +71,10 @@ export function ListMembersSection({ listId, currentUserRole }: Props) {
       <View style={styles.headerRow}>
         <Text variant="label" style={styles.sectionLabel}>COMPARTILHAR / MEMBROS</Text>
         {members.length > 0 && (
-          <Text variant="caption" secondary>👥 {members.length}</Text>
+          <View style={styles.memberCount}>
+            <AppIcon name="members" size={13} color={theme.colors.textSecondary} />
+            <Text variant="caption" secondary>{members.length}</Text>
+          </View>
         )}
       </View>
 
@@ -146,6 +150,7 @@ export function ListMembersSection({ listId, currentUserRole }: Props) {
 const styles = StyleSheet.create({
   section: { gap: Spacing[2] },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  memberCount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   sectionLabel: { fontSize: FontSize.xs, letterSpacing: 0.6, color: '#9CA3AF', fontWeight: '500' },
   inviteRow: { flexDirection: 'row', gap: Spacing[2], alignItems: 'stretch' },
   inputWrapper: { flex: 1, borderRadius: Radius.md, borderWidth: 1.5, paddingHorizontal: Spacing[3], justifyContent: 'center' },

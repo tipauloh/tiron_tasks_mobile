@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/spacing';
@@ -56,8 +57,9 @@ export function GoalCard({ goal, onPress, primary }: GoalCardProps) {
 
       {primary && (
         <View style={[styles.primaryTag, { backgroundColor: Colors.primary + '18' }]}>
+          <AppIcon name="star" size={13} color={Colors.primary} />
           <Text variant="label" weight="semibold" style={{ color: Colors.primary }}>
-            ⭐ META PRINCIPAL
+            META PRINCIPAL
           </Text>
         </View>
       )}
@@ -71,6 +73,9 @@ const styles = StyleSheet.create({
   titleBlock: { flex: 1, gap: 2 },
   bar: { marginTop: Spacing[3] },
   primaryTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[1],
     alignSelf: 'flex-start',
     marginTop: Spacing[3],
     paddingHorizontal: Spacing[2],

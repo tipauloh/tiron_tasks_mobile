@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Link, useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth-store';
 import { Text } from '@/components/ui/Text';
@@ -91,7 +92,7 @@ export default function RegisterScreen() {
             accessibilityLabel="Voltar"
             hitSlop={8}
           >
-            <Ionicons name="arrow-back" size={22} color={theme.text} />
+            <AppIcon name="back" size={22} color={theme.text} />
           </Pressable>
           <Text style={[styles.title, { color: theme.text }]}>Criar conta</Text>
           <Text style={[styles.subtitle, { color: theme.textTertiary }]}>
@@ -196,8 +197,8 @@ export default function RegisterScreen() {
 
           {shownError ? (
             <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={15} color={Colors.danger} style={{ marginRight: 6 }} />
-              <Text style={styles.errorText}>{shownError}</Text>
+              <AppIcon name="alert" size={15} color={Colors.danger} />
+              <Text style={[styles.errorText, { marginLeft: 6 }]}>{shownError}</Text>
             </View>
           ) : null}
 
@@ -214,8 +215,8 @@ export default function RegisterScreen() {
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <>
-                <Ionicons name="person-add-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={styles.primaryBtnText}>Criar conta</Text>
+                <AppIcon name="register" size={18} color="#fff" />
+                <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Criar conta</Text>
               </>
             )}
           </Pressable>

@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize, FontWeight } from '@/constants/typography';
@@ -43,7 +44,7 @@ function RowItem({
   onPress,
   danger,
 }: {
-  icon: string;
+  icon: AppIconName;
   label: string;
   value?: string;
   onPress?: () => void;
@@ -57,7 +58,9 @@ function RowItem({
       disabled={!onPress}
       activeOpacity={onPress ? 0.6 : 1}
     >
-      <Text style={styles.rowIcon}>{icon}</Text>
+      <View style={styles.rowIcon}>
+        <AppIcon name={icon} size={20} color={danger ? Colors.danger : theme.colors.textSecondary} />
+      </View>
       <View style={styles.rowContent}>
         <Text
           variant="body"
@@ -70,7 +73,7 @@ function RowItem({
         ) : null}
       </View>
       {onPress && !danger ? (
-        <Text style={{ color: theme.colors.textTertiary, fontSize: 18 }}>›</Text>
+        <AppIcon name="chevronRight" size={18} color={theme.colors.textTertiary} />
       ) : null}
     </TouchableOpacity>
   );
@@ -162,13 +165,13 @@ export default function ProfileScreen() {
         <Card style={styles.section}>
           <Text variant="label" secondary style={styles.sectionTitle}>CONTA</Text>
           <RowItem
-            icon="✏️"
+            icon="edit"
             label="Editar perfil"
             value="Nome e e-mail"
             onPress={() => router.push('/edit-profile' as never)}
           />
           <RowItem
-            icon="🔒"
+            icon="lock"
             label="Alterar senha"
             onPress={() => router.push('/change-password' as never)}
           />
@@ -178,7 +181,7 @@ export default function ProfileScreen() {
         <Card style={styles.section}>
           <Text variant="label" secondary style={styles.sectionTitle}>PREFERÊNCIAS</Text>
           <RowItem
-            icon="🌎"
+            icon="timezone"
             label="Fuso horário"
             value={`${timezoneLabel(currentTz)} (${formatOffset(currentTz)})`}
             onPress={() => setShowTzSheet(true)}
@@ -189,13 +192,13 @@ export default function ProfileScreen() {
         <Card style={styles.section}>
           <Text variant="label" secondary style={styles.sectionTitle}>INTEGRAÇÕES</Text>
           <RowItem
-            icon="🪟"
+            icon="microsoft"
             label="Microsoft 365"
             value="Tarefas e e-mails sinalizados"
             onPress={() => router.push('/microsoft365' as never)}
           />
           <RowItem
-            icon="📆"
+            icon="caldav"
             label="CalDAV"
             value="Calendário e Lembretes (iPhone, Android)"
             onPress={() => router.push('/caldav' as never)}
@@ -205,14 +208,14 @@ export default function ProfileScreen() {
         {/* Info */}
         <Card style={styles.section}>
           <Text variant="label" secondary style={styles.sectionTitle}>INFORMAÇÕES</Text>
-          <RowItem icon="📧" label="E-mail" value={displayEmail} />
-          <RowItem icon="🆔" label="ID do usuário" value={`#${profile?.id ?? user?.id ?? '—'}`} />
+          <RowItem icon="mail" label="E-mail" value={displayEmail} />
+          <RowItem icon="id" label="ID do usuário" value={`#${profile?.id ?? user?.id ?? '—'}`} />
         </Card>
 
         {/* Sair */}
         <Card style={styles.section}>
           <RowItem
-            icon="🚪"
+            icon="logout"
             label="Sair da conta"
             onPress={handleLogout}
             danger
@@ -223,7 +226,9 @@ export default function ProfileScreen() {
         <Card style={[styles.section, { marginBottom: Spacing[8] }]}>
           <Text variant="label" secondary style={styles.sectionTitle}>VERSÃO DO APP</Text>
           <View style={[styles.row, { borderBottomColor: theme.colors.border }]}>
-            <Text style={styles.rowIcon}>📱</Text>
+            <View style={styles.rowIcon}>
+              <AppIcon name="app" size={20} color={theme.colors.textSecondary} />
+            </View>
             <View style={styles.rowContent}>
               <Text variant="body" style={{ color: theme.colors.text }}>Versão atual</Text>
               <Text variant="caption" secondary>{versionLabel}</Text>
@@ -235,7 +240,9 @@ export default function ProfileScreen() {
             disabled={checkingUpdate}
             activeOpacity={0.6}
           >
-            <Text style={styles.rowIcon}>🔄</Text>
+            <View style={styles.rowIcon}>
+              <AppIcon name="refresh" size={20} color={Colors.primary} />
+            </View>
             <View style={styles.rowContent}>
               <Text variant="body" style={{ color: Colors.primary }}>
                 Verificar atualização
@@ -243,7 +250,7 @@ export default function ProfileScreen() {
             </View>
             {checkingUpdate
               ? <ActivityIndicator size="small" color={Colors.primary} />
-              : <Text style={{ color: theme.colors.textTertiary, fontSize: 18 }}>›</Text>
+              : <AppIcon name="chevronRight" size={18} color={theme.colors.textTertiary} />
             }
           </TouchableOpacity>
         </Card>
@@ -300,6 +307,6 @@ const styles = StyleSheet.create({
     gap: Spacing[3],
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  rowIcon: { fontSize: 20, width: 28, textAlign: 'center' },
+  rowIcon: { width: 28, alignItems: 'center', justifyContent: 'center' },
   rowContent: { flex: 1, gap: 2 },
 });

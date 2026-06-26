@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Link, useLocalSearchParams } from 'expo-router';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import {
@@ -231,8 +232,8 @@ export default function LoginScreen() {
           >
             {notice ? (
               <View style={styles.noticeBox}>
-                <Ionicons name="checkmark-circle-outline" size={16} color={Colors.success} style={{ marginRight: 6 }} />
-                <Text style={styles.noticeText}>{notice}</Text>
+                <AppIcon name="success" size={16} color={Colors.success} />
+                <Text style={[styles.noticeText, { marginLeft: 6 }]}>{notice}</Text>
               </View>
             ) : null}
 
@@ -311,8 +312,8 @@ export default function LoginScreen() {
 
             {error ? (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle-outline" size={15} color={Colors.danger} style={{ marginRight: 6 }} />
-                <Text style={styles.errorText}>{error}</Text>
+                <AppIcon name="alert" size={15} color={Colors.danger} />
+                <Text style={[styles.errorText, { marginLeft: 6 }]}>{error}</Text>
               </View>
             ) : null}
 
@@ -329,8 +330,8 @@ export default function LoginScreen() {
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <>
-                  <Ionicons name="log-in-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={styles.loginBtnText}>Entrar</Text>
+                  <AppIcon name="login" size={18} color="#fff" />
+                  <Text style={[styles.loginBtnText, { marginLeft: 8 }]}>Entrar</Text>
                 </>
               )}
             </Pressable>
@@ -376,7 +377,7 @@ export default function LoginScreen() {
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <>
-                      <Ionicons name="logo-apple" size={18} color="#FFFFFF" />
+                      <AppIcon name="apple" size={18} color="#FFFFFF" />
                       <Text style={[styles.oauthBtnText, { color: '#FFFFFF' }]}>Apple</Text>
                     </>
                   )}

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text } from '@/components/ui/Text';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { useTheme } from '@/hooks/use-theme';
@@ -91,13 +92,13 @@ export function CalendarPicker({ visible, onClose, onSelect, selectedDate }: Pro
       {/* Navegação de mês */}
       <View style={styles.monthNav}>
         <TouchableOpacity onPress={prevMonth} style={styles.navBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={[styles.navArrow, { color: Colors.primary }]}>‹</Text>
+          <AppIcon name="chevronLeft" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <Text variant="callout" weight="semibold" style={{ color: theme.colors.text }}>
           {MONTH_NAMES[displayMonth]} {displayYear}
         </Text>
         <TouchableOpacity onPress={nextMonth} style={styles.navBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={[styles.navArrow, { color: Colors.primary }]}>›</Text>
+          <AppIcon name="chevronRight" size={24} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -174,10 +175,6 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  navArrow: {
-    fontSize: 28,
-    lineHeight: 32,
   },
   weekRow: {
     flexDirection: 'row',

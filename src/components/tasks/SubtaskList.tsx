@@ -8,6 +8,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useTheme } from '../../hooks/use-theme';
+import { AppIcon } from '../ui/AppIcon';
 import type { Task } from '../../domain/entities';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -117,7 +118,7 @@ export function SubtaskList({
             ]}
             onPress={handleAdd}
           >
-            <Text style={styles.addButtonText}>+</Text>
+            <AppIcon name="plus" size={18} color="#FFFFFF" />
           </TouchableOpacity>
         )}
       </View>
@@ -150,7 +151,7 @@ function SubtaskRow({ subtask, onToggle, onDelete, theme }: SubtaskRowProps) {
         onPress={onToggle}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        {isCompleted && <Text style={styles.checkmark}>✓</Text>}
+        {isCompleted && <AppIcon name="check" size={11} color="#FFFFFF" />}
       </TouchableOpacity>
 
       <Text
@@ -171,11 +172,7 @@ function SubtaskRow({ subtask, onToggle, onDelete, theme }: SubtaskRowProps) {
         onPress={onDelete}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Text
-          style={[styles.deleteIcon, { color: theme.colors.textTertiary }]}
-        >
-          ✕
-        </Text>
+        <AppIcon name="close" size={13} color={theme.colors.textTertiary} />
       </TouchableOpacity>
     </View>
   );
@@ -225,11 +222,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
   subtaskTitle: {
     flex: 1,
     fontSize: 14,
@@ -237,9 +229,6 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 2,
-  },
-  deleteIcon: {
-    fontSize: 13,
   },
   addRow: {
     flexDirection: 'row',
@@ -262,11 +251,5 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '400',
   },
 });

@@ -17,6 +17,7 @@ import { TaskItem } from '@/components/tasks/TaskItem';
 import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY } from '@/components/tasks/CompletedSection';
 import { useFilterStore } from '@/store/filter-store';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { useAllTasksForCalendar, useDeleteTask, useToggleTaskStatus, useToggleFavorite } from '@/hooks/api/use-tasks';
@@ -197,13 +198,13 @@ export default function CalendarScreen() {
       {/* Month navigation */}
       <View style={[styles.monthNav, { paddingHorizontal: Spacing[4], paddingTop: Spacing[3] }]}>
         <TouchableOpacity onPress={prevMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={[styles.navArrow, { color: Colors.primary }]}>‹</Text>
+          <AppIcon name="chevronLeft" size={28} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={[styles.monthTitle, { color: theme.colors.text }]}>
           {MONTH_NAMES[displayMonth]} {displayYear}
         </Text>
         <TouchableOpacity onPress={nextMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={[styles.navArrow, { color: Colors.primary }]}>›</Text>
+          <AppIcon name="chevronRight" size={28} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -312,7 +313,7 @@ export default function CalendarScreen() {
         ListEmptyComponent={
           isLoading ? null : (
             <EmptyState
-              icon="📅"
+              icon="emptyCalendar"
               title="Sem tarefas"
               description="Nenhuma tarefa agendada para este dia"
               actionLabel="+ Nova tarefa"
@@ -329,7 +330,7 @@ export default function CalendarScreen() {
         onPress={() => router.push({ pathname: '/create-task', params: { date: selectedDateStr } } as never)}
         activeOpacity={0.85}
       >
-        <Text style={styles.fabIcon}>+</Text>
+        <AppIcon name="plus" size={28} color="#FFFFFF" />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -339,7 +340,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
 
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: Spacing[3] },
-  navArrow: { fontSize: 30, lineHeight: 34, width: 36, textAlign: 'center' },
   monthTitle: { fontSize: 17, fontWeight: '700' },
 
   weekRow: { flexDirection: 'row' },
@@ -381,5 +381,4 @@ const styles = StyleSheet.create({
   deleteActionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
 
   fab: { position: 'absolute', bottom: 24, right: 20, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  fabIcon: { color: '#FFFFFF', fontSize: 28, lineHeight: 32, fontWeight: '400' },
 });

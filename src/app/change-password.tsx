@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { FontSize } from '@/constants/typography';
@@ -56,7 +57,7 @@ function PasswordField({
           onSubmitEditing={onSubmitEditing}
         />
         <TouchableOpacity onPress={() => setVisible((v) => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={{ fontSize: 18 }}>{visible ? '🙈' : '👁️'}</Text>
+          <AppIcon name={visible ? 'eyeOff' : 'eye'} size={18} color={theme.colors.textTertiary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -116,7 +117,7 @@ export default function ChangePasswordScreen() {
           automaticallyAdjustKeyboardInsets
         >
           <View style={[styles.infoBox, { backgroundColor: theme.colors.surfaceElevated, borderColor: theme.colors.border }]}>
-            <Text style={{ fontSize: 20 }}>🔒</Text>
+            <AppIcon name="lock" size={20} color={theme.colors.textSecondary} />
             <Text variant="caption" secondary style={{ flex: 1 }}>
               Escolha uma senha com pelo menos 8 caracteres. Ela será necessária no próximo login.
             </Text>
@@ -149,7 +150,7 @@ export default function ChangePasswordScreen() {
 
           {next.length > 0 && next !== confirm && confirm.length > 0 && (
             <View style={styles.errorRow}>
-              <Text style={{ fontSize: 14 }}>⚠️</Text>
+              <AppIcon name="warning" size={14} color={Colors.danger} />
               <Text variant="caption" style={{ color: Colors.danger }}>
                 As senhas não coincidem
               </Text>
@@ -158,7 +159,7 @@ export default function ChangePasswordScreen() {
 
           {next.length > 0 && next.length < 8 && (
             <View style={styles.errorRow}>
-              <Text style={{ fontSize: 14 }}>⚠️</Text>
+              <AppIcon name="warning" size={14} color={Colors.danger} />
               <Text variant="caption" style={{ color: Colors.danger }}>
                 A senha deve ter pelo menos 8 caracteres
               </Text>

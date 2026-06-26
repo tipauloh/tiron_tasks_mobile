@@ -2,22 +2,31 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { Button } from './Button';
+import { AppIcon, type AppIconName } from './AppIcon';
+import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '../../constants/spacing';
-import { FontSize } from '../../constants/typography';
 
 interface EmptyStateProps {
   title: string;
   description?: string;
-  icon?: string;
+  icon?: AppIconName;
   actionLabel?: string;
   onAction?: () => void;
 }
 
 export function EmptyState({ title, description, icon, actionLabel, onAction }: EmptyStateProps) {
+  const { theme } = useTheme();
   return (
     <View style={styles.container}>
       {icon && (
-        <Text style={styles.icon}>{icon}</Text>
+        <View
+          style={[
+            styles.iconWrap,
+            { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+          ]}
+        >
+          <AppIcon name={icon} size={32} color={theme.colors.textTertiary} />
+        </View>
       )}
       <Text variant="headline" weight="semibold" style={styles.title}>
         {title}
@@ -44,10 +53,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[8],
     paddingVertical: Spacing[10],
   },
-  icon: {
-    fontSize: FontSize['3xl'] * 1.5,
+  iconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing[4],
-    textAlign: 'center',
   },
   title: {
     textAlign: 'center',

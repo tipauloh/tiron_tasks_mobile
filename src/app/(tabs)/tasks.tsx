@@ -18,6 +18,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useFilterStore } from '@/store/filter-store';
 import { useTheme } from '@/hooks/use-theme';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY } from '@/components/tasks/CompletedSection';
 import { useTasks, useMyDay, useImportantTasks, useUpcomingTasks, useDeleteTask, useToggleTaskStatus, useToggleFavorite, useCreateTask } from '@/hooks/api/use-tasks';
@@ -157,7 +158,7 @@ export default function TasksScreen() {
         contentContainerStyle={tasks.length === 0 ? styles.emptyContainer : styles.list}
         ListEmptyComponent={
           <EmptyState
-            icon="✅"
+            icon="emptyDone"
             title="Nenhuma tarefa aqui"
             description="Crie sua primeira tarefa para começar"
             actionLabel="+ Nova tarefa"
@@ -201,7 +202,7 @@ export default function TasksScreen() {
             onPress={() => router.push('/create-task' as never)}
             activeOpacity={0.85}
           >
-            <Text style={styles.fabIcon}>+</Text>
+            <AppIcon name="plus" size={28} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -331,5 +332,4 @@ const styles = StyleSheet.create({
   quickAddInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   quickAddSend: { fontSize: 14, fontWeight: '600' },
   fab: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  fabIcon: { color: '#FFFFFF', fontSize: 28, lineHeight: 32, fontWeight: '400' },
 });

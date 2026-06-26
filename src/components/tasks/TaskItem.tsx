@@ -9,6 +9,7 @@ import Animated, {
 import { useTheme } from '../../hooks/use-theme';
 import { Checkbox } from '../ui/Checkbox';
 import { Text } from '../ui/Text';
+import { AppIcon } from '../ui/AppIcon';
 import { Task } from '../../domain/entities';
 import { PriorityBadge } from './PriorityBadge';
 import { DueDateLabel } from './DueDateLabel';
@@ -69,45 +70,49 @@ export function TaskItem({ task, onToggle, onPress, onFavorite, onLongPress, isL
 
         {/* Center: Task info */}
         <View style={styles.center}>
-          <Text
-            variant="body"
-            weight="medium"
-            style={[
-              styles.title,
-              isCompleted && styles.titleCompleted,
-              isCompleted && { color: theme.colors.textTertiary },
-            ]}
-            numberOfLines={2}
-          >
-            {task.isEmailLinked ? '🚩 ' : ''}{task.title}
-          </Text>
+          <View style={styles.titleRow}>
+            {task.isEmailLinked && (
+              <AppIcon name="flag" size={13} color={theme.colors.textSecondary} />
+            )}
+            <Text
+              variant="body"
+              weight="medium"
+              style={[
+                styles.title,
+                isCompleted && styles.titleCompleted,
+                isCompleted && { color: theme.colors.textTertiary },
+              ]}
+              numberOfLines={2}
+            >
+              {task.title}
+            </Text>
+          </View>
 
           <View style={styles.meta}>
             {task.dueDate && <DueDateLabel dueDate={task.dueDate} />}
             {task.startTime && (
-              <Text variant="caption" style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>
-                🕘 {task.startTime}{task.endTime ? `–${task.endTime}` : ''}
-              </Text>
+              <View style={styles.metaItem}>
+                <AppIcon name="clock" size={12} color={theme.colors.textSecondary} />
+                <Text variant="caption" style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>
+                  {task.startTime}{task.endTime ? `–${task.endTime}` : ''}
+                </Text>
+              </View>
             )}
             {task.isRecurring && (
-              <Text variant="caption" style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>
-                🔁
-              </Text>
+              <AppIcon name="repeat" size={12} color={theme.colors.textSecondary} />
             )}
             <PriorityBadge priority={task.priority} size="sm" />
           </View>
         </View>
 
-        {/* Right: botão "Em Foco" (favoritar) — alvo 🎯, igual à lista Em Foco */}
+        {/* Right: botão "Em Foco" (favoritar) — estrela, igual à lista Em Foco */}
         <TouchableOpacity
           onPress={() => onFavorite(task.id)}
           hitSlop={8}
-          style={styles.favoriteButton}
+          style={[styles.favoriteButton, { opacity: task.isFavorite ? 1 : 0.3 }]}
           accessibilityLabel={task.isFavorite ? 'Remover do Em Foco' : 'Adicionar ao Em Foco'}
         >
-          <Text style={[styles.star, { opacity: task.isFavorite ? 1 : 0.3 }]}>
-            🎯
-          </Text>
+          <AppIcon name="star" size={20} color={task.isFavorite ? Colors.warning : theme.colors.textSecondary} />
         </TouchableOpacity>
       </TouchableOpacity>
     </Animated.View>
@@ -133,7 +138,13 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing[1],
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   title: {
+    flex: 1,
     lineHeight: 20,
   },
   titleCompleted: {
@@ -145,6 +156,11 @@ const styles = StyleSheet.create({
     gap: Spacing[2],
     flexWrap: 'wrap',
   },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
   timeLabel: {
     fontSize: 12,
   },
@@ -153,8 +169,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 32,
     height: 32,
-  },
-  star: {
-    fontSize: 20,
   },
 });

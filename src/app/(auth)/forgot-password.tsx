@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { useRouter } from 'expo-router';
 import { passwordRecoveryApi } from '@/infrastructure/api/password-recovery-api';
 import { Text } from '@/components/ui/Text';
@@ -114,7 +115,7 @@ export default function ForgotPasswordScreen() {
             accessibilityLabel="Voltar"
             hitSlop={8}
           >
-            <Ionicons name="arrow-back" size={22} color={theme.text} />
+            <AppIcon name="back" size={22} color={theme.text} />
           </Pressable>
           <Text style={[styles.title, { color: theme.text }]}>
             {step === 'email' ? 'Esqueci minha senha' : 'Redefinir senha'}
@@ -156,8 +157,8 @@ export default function ForgotPasswordScreen() {
 
               {error ? (
                 <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle-outline" size={15} color={Colors.danger} style={{ marginRight: 6 }} />
-                  <Text style={styles.errorText}>{error}</Text>
+                  <AppIcon name="alert" size={15} color={Colors.danger} />
+                  <Text style={[styles.errorText, { marginLeft: 6 }]}>{error}</Text>
                 </View>
               ) : null}
 
@@ -174,8 +175,8 @@ export default function ForgotPasswordScreen() {
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <>
-                    <Ionicons name="paper-plane-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                    <Text style={styles.primaryBtnText}>Enviar código</Text>
+                    <AppIcon name="send" size={18} color="#fff" />
+                    <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Enviar código</Text>
                   </>
                 )}
               </Pressable>
@@ -184,8 +185,8 @@ export default function ForgotPasswordScreen() {
             <>
               {info ? (
                 <View style={styles.infoBox}>
-                  <Ionicons name="checkmark-circle-outline" size={16} color={Colors.success} style={{ marginRight: 6 }} />
-                  <Text style={styles.infoText}>{info}</Text>
+                  <AppIcon name="success" size={16} color={Colors.success} />
+                  <Text style={[styles.infoText, { marginLeft: 6 }]}>{info}</Text>
                 </View>
               ) : null}
 
@@ -260,8 +261,8 @@ export default function ForgotPasswordScreen() {
 
               {error ? (
                 <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle-outline" size={15} color={Colors.danger} style={{ marginRight: 6 }} />
-                  <Text style={styles.errorText}>{error}</Text>
+                  <AppIcon name="alert" size={15} color={Colors.danger} />
+                  <Text style={[styles.errorText, { marginLeft: 6 }]}>{error}</Text>
                 </View>
               ) : null}
 
@@ -278,8 +279,8 @@ export default function ForgotPasswordScreen() {
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <>
-                    <Ionicons name="checkmark-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                    <Text style={styles.primaryBtnText}>Redefinir senha</Text>
+                    <AppIcon name="check" size={18} color="#fff" />
+                    <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Redefinir senha</Text>
                   </>
                 )}
               </Pressable>

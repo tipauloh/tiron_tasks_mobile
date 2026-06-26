@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../hooks/use-theme';
 import { BottomSheet } from '../ui/BottomSheet';
+import { AppIcon } from '../ui/AppIcon';
 import { useTaskLists } from '../../hooks/api/use-task-lists';
 
 export interface ListSelectorProps {
@@ -108,7 +109,7 @@ export function ListSelectorTrigger({ value, onChange }: ListSelectorTriggerProp
         <Text style={[styles.triggerLabel, { color: theme.colors.text }]}>
           {selectedList ? selectedList.name : 'Sem lista'}
         </Text>
-        <Text style={[styles.triggerChevron, { color: theme.colors.textTertiary }]}>›</Text>
+        <AppIcon name="chevronRight" size={18} color={theme.colors.textTertiary} />
       </TouchableOpacity>
 
       <ListSelector value={value} onChange={onChange} visible={open} onClose={() => setOpen(false)} />
@@ -129,5 +130,4 @@ const styles = StyleSheet.create({
   triggerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, gap: 10 },
   triggerSwatch: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   triggerLabel: { flex: 1, fontSize: 15 },
-  triggerChevron: { fontSize: 20 },
 });

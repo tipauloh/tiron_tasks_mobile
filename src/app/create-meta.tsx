@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Button } from '@/components/ui/Button';
 import { CalendarPicker } from '@/components/tasks/CalendarPicker';
 import { CategoryPicker } from '@/components/metas/CategoryPicker';
@@ -132,7 +133,7 @@ export default function CreateMetaScreen() {
               <Text variant="body" style={{ flex: 1, color: category ? theme.colors.text : theme.colors.textTertiary }}>
                 {category ?? 'Escolha uma categoria'}
               </Text>
-              <Text style={{ color: theme.colors.textTertiary }}>›</Text>
+              <AppIcon name="chevronRight" size={18} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           </View>
 
@@ -160,7 +161,7 @@ export default function CreateMetaScreen() {
               onPress={() => setShowCalendar(true)}
               activeOpacity={0.7}
             >
-              <Text style={{ fontSize: 18 }}>🗓️</Text>
+              <AppIcon name="calendar" size={18} color={theme.colors.textTertiary} />
               <Text variant="body" style={{ flex: 1, color: endDate ? theme.colors.text : theme.colors.textTertiary }}>
                 {endDate
                   ? endDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -208,7 +209,7 @@ export default function CreateMetaScreen() {
                         onPress={() => setKpiPickerIndex(index)}
                         activeOpacity={0.7}
                       >
-                        <Text style={{ fontSize: 15 }}>{typeMeta.emoji}</Text>
+                        <AppIcon name={typeMeta.icon} size={15} color={theme.colors.text} />
                         <Text variant="caption" weight="semibold">{typeMeta.label}</Text>
                       </TouchableOpacity>
 

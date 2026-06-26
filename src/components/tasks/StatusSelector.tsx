@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../hooks/use-theme';
+import { AppIcon, type AppIconName } from '../ui/AppIcon';
 import type { TaskStatus } from '../../domain/entities';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ interface StatusOption {
   label: string;
   color: string;
   bgColor: string;
-  icon: string;
+  icon: AppIconName;
 }
 
 const STATUS_OPTIONS: StatusOption[] = [
@@ -26,28 +27,28 @@ const STATUS_OPTIONS: StatusOption[] = [
     label: 'Não iniciada',
     color: '#9CA3AF',
     bgColor: '#F9FAFB',
-    icon: '○',
+    icon: 'statusNotStarted',
   },
   {
     key: 'in_progress',
     label: 'Em andamento',
     color: '#3B82F6',
     bgColor: '#EFF6FF',
-    icon: '◑',
+    icon: 'statusInProgress',
   },
   {
     key: 'completed',
     label: 'Concluída',
     color: '#10B981',
     bgColor: '#ECFDF5',
-    icon: '●',
+    icon: 'statusCompleted',
   },
   {
     key: 'cancelled',
     label: 'Cancelada',
     color: '#EF4444',
     bgColor: '#FEF2F2',
-    icon: '✕',
+    icon: 'statusCancelled',
   },
 ];
 
@@ -74,17 +75,9 @@ export function StatusSelector({ value, onChange }: StatusSelectorProps) {
             onPress={() => onChange(opt.key)}
             activeOpacity={0.75}
           >
-            <Text
-              style={[
-                styles.icon,
-                {
-                  color: opt.color,
-                  opacity: isSelected ? 1 : 0.5,
-                },
-              ]}
-            >
-              {opt.icon}
-            </Text>
+            <View style={[styles.icon, { opacity: isSelected ? 1 : 0.5 }]}>
+              <AppIcon name={opt.icon} size={16} color={opt.color} />
+            </View>
             <Text
               style={[
                 styles.label,
@@ -123,9 +116,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   icon: {
-    fontSize: 16,
     width: 20,
-    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
     flex: 1,

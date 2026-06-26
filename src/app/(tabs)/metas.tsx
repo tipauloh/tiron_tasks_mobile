@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/use-theme';
 import { Text } from '@/components/ui/Text';
+import { AppIcon } from '@/components/ui/AppIcon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScoreCard } from '@/components/metas/ScoreCard';
 import { GoalCard } from '@/components/metas/GoalCard';
@@ -53,13 +54,13 @@ export default function MetasScreen() {
           activeOpacity={0.85}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.addBtnIcon}>+</Text>
+          <AppIcon name="plus" size={22} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
       {!hasData && !isLoading ? (
         <EmptyState
-          icon="🎯"
+          icon="emptyGoals"
           title="Nenhuma meta ainda"
           description="Defina uma meta e acompanhe seu progresso em um só lugar."
           actionLabel="+ Criar meta"
@@ -150,7 +151,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing[2],
   },
   addBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  addBtnIcon: { color: '#FFFFFF', fontSize: 24, lineHeight: 28, fontWeight: '400' },
   scroll: { padding: Spacing[4], paddingBottom: Spacing[12], gap: Spacing[5] },
   section: { gap: Spacing[2] },
   sectionTitle: { letterSpacing: 0.6, marginBottom: Spacing[1] },
