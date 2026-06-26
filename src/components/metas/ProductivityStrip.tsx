@@ -70,6 +70,12 @@ export function ProductivityStrip() {
 
   return (
     <>
+      <View style={styles.header}>
+        <Text variant="callout" weight="semibold">Sua produtividade</Text>
+        <Text variant="caption" tertiary style={styles.subtitle}>
+          Tarefas que você concluiu — acompanhe seu ritmo. Toque no “+” do mês para ver a evolução.
+        </Text>
+      </View>
       <Card padding={3} style={styles.card}>
         <View style={styles.row}>
           <KpiItem icon="done" value={data.today} label="Hoje" />
@@ -126,6 +132,8 @@ export function ProductivityStrip() {
 }
 
 const styles = StyleSheet.create({
+  header: { paddingHorizontal: Spacing[1], marginBottom: Spacing[2], gap: 2 },
+  subtitle: { lineHeight: 16 },
   card: { paddingVertical: Spacing[3] },
   row: { flexDirection: 'row', alignItems: 'center' },
   kpi: { flex: 1, alignItems: 'center', gap: Spacing[0.5] },

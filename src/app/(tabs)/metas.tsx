@@ -91,12 +91,16 @@ export default function MetasScreen() {
 
           {dashboard && (
             <>
-              {/* Score geral */}
-              <ScoreCard
-                score={dashboard.score}
-                statusLabel={dashboard.status_label}
-                trend={dashboard.trend as GoalTrend}
-              />
+              {/* Título da seção de metas — separa do bloco de produtividade. */}
+              <View style={styles.section}>
+                <SectionTitle>Suas metas</SectionTitle>
+                {/* Score geral */}
+                <ScoreCard
+                  score={dashboard.score}
+                  statusLabel={dashboard.status_label}
+                  trend={dashboard.trend as GoalTrend}
+                />
+              </View>
 
               {/* Meta Principal */}
               {dashboard.primary_goal && (
