@@ -23,6 +23,7 @@ import { TaskItem } from '@/components/tasks/TaskItem';
 import { ListIcon } from '@/components/tasks/ListIcon';
 import { buildTaskRows, CompletedSectionHeader, COMPLETED_HEADER_KEY } from '@/components/tasks/CompletedSection';
 import { useTasks, useMyDay, useImportantTasks, useUpcomingTasks, useDeleteTask, useToggleTaskStatus, useToggleFavorite, useCreateTask } from '@/hooks/api/use-tasks';
+import { toggleTaskCompletion } from '@/lib/complete-task';
 import { useTaskLists, useArchiveTaskList } from '@/hooks/api/use-task-lists';
 import type { ApiTaskSummary, ApiTaskListFull } from '@/infrastructure/api/types';
 
@@ -146,10 +147,7 @@ export default function TasksScreen() {
           return (
             <TaskItemSwipeable
               task={item}
-              onToggle={() => {
-                const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
-                toggleStatus.mutate({ id: item.id, status: newStatus });
-              }}
+              onToggle={() => toggleTaskCompletion(item, toggleStatus.mutate)}
               onPress={() => router.push(`/task/${item.id}` as never)}
               onFavorite={() => toggleFav.mutate({ id: item.id, isFavorite: !item.isFavorite })}
               onDelete={() => handleDelete(item.id, item.title)}

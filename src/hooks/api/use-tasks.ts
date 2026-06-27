@@ -131,8 +131,8 @@ export function useDeleteTask() {
 export function useToggleTaskStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      taskApi.updateStatus(parseInt(id), status),
+    mutationFn: ({ id, status, recurAction }: { id: string; status: string; recurAction?: 'next' | 'end' }) =>
+      taskApi.updateStatus(parseInt(id), status, recurAction),
     onSuccess: (res, { id }) => {
       qc.invalidateQueries({ queryKey: ['tasks'] });
       qc.invalidateQueries({ queryKey: TASK_QUERY_KEY(id) });

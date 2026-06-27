@@ -21,6 +21,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import { useAllTasksForCalendar, useDeleteTask, useToggleTaskStatus, useToggleFavorite } from '@/hooks/api/use-tasks';
+import { toggleTaskCompletion } from '@/lib/complete-task';
 import type { ApiTaskSummary } from '@/infrastructure/api/types';
 import { expandRecurrence } from '@/utils/recurrence';
 import { useTimezone } from '@/hooks/use-timezone';
@@ -300,10 +301,7 @@ export default function CalendarScreen() {
           return (
             <TaskItemSwipeable
               task={item}
-              onToggle={() => {
-                const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
-                toggleStatus.mutate({ id: item.id, status: newStatus });
-              }}
+              onToggle={() => toggleTaskCompletion(item, toggleStatus.mutate)}
               onPress={() => router.push(`/task/${item.id}` as never)}
               onFavorite={() => toggleFav.mutate({ id: item.id, isFavorite: !item.isFavorite })}
               onDelete={() => handleDelete(item.id, item.title)}

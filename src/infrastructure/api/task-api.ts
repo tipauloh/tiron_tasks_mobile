@@ -72,8 +72,12 @@ export const taskApi = {
     return apiClient.delete(`${BASE}/${id}`);
   },
 
-  updateStatus(id: number, status: string): Promise<SingleResponse<ApiTaskSummary>> {
-    return apiClient.patch(`${BASE}/${id}/status`, { status });
+  updateStatus(
+    id: number,
+    status: string,
+    recurAction?: 'next' | 'end',
+  ): Promise<SingleResponse<ApiTaskSummary>> {
+    return apiClient.patch(`${BASE}/${id}/status`, { status, recur_action: recurAction });
   },
 
   toggleFavorite(id: number, isFavorite: boolean): Promise<SingleResponse<ApiTaskSummary>> {

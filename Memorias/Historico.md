@@ -272,3 +272,6 @@ Identidade visual moderna/minimalista: emojis de UI substituídos por ícones ou
 
 ### FIX — Fuso do ALERTA do CalDAV (1h deslocado) (2026-06-26)
 O remind_at é salvo no fuso do USUÁRIO (ex. Cuiabá -4), mas o start_time do evento é canônico (-3). O gatilho do alarme (remind - start) somava o delta de fuso → alerta 1h deslocado. Correção: a API converte o remind_at do fuso do usuário (mobile_users.timezone) para o canônico (America/Sao_Paulo) na query (AT TIME ZONE :utz AT TIME ZONE 'America/Sao_Paulo'), igual ao start_time. Helper caldav_service._user_timezone. _FORMAT_VERSION→ev5. Deployado.
+
+### FEAT — Concluir tarefa recorrente: manter próxima ou encerrar (2026-06-26)
+Ao concluir uma tarefa COM recorrência, o app pergunta: "Concluir e manter a próxima" (fecha esta para a produtividade e cria UMA tarefa idêntica na próxima ocorrência — com recorrência e lembretes deslocados) ou "Concluir e encerrar". Backend: TaskStatusRequest.recur_action ('next'/'end'); task_service._next_occurrence (daily/weekly[by_weekday]/monthly[clamp dia]/yearly + ends_at) + _recreate_next_occurrence (INSERT..SELECT copiando campos+recorrência+reminders deslocados). update_status recria quando completed+recur_action=next. Mobile: taskApi.updateStatus(recurAction), useToggleTaskStatus, helper lib/complete-task.ts (Alert) aplicado nos onToggle (index/calendar/tasks). 297 testes.

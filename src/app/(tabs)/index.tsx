@@ -44,6 +44,7 @@ import { Colors } from '@/constants/colors';
 import { Spacing, Radius } from '@/constants/spacing';
 import type { ApiTaskSummary, ApiTaskListFull } from '@/infrastructure/api/types';
 import { useTimezone } from '@/hooks/use-timezone';
+import { toggleTaskCompletion } from '@/lib/complete-task';
 import { displaySchedule, SYSTEM_TZ } from '@/utils/timezone';
 
 type ViewMode = 'all' | 'today' | 'upcoming' | 'overdue' | 'favorites' | 'completed';
@@ -710,10 +711,7 @@ export default function TasksScreen() {
           const next = rows[index + 1];
           const isLast = !next || next.kind === 'completed-header';
           const selected = selectedIds.has(item.id);
-          const onToggle = () => {
-            const newStatus = item.status === 'completed' ? 'not_started' : 'completed';
-            toggleStatus.mutate({ id: item.id, status: newStatus });
-          };
+          const onToggle = () => toggleTaskCompletion(item, toggleStatus.mutate);
           // Em seleção, tocar a linha toggla; senão abre a tarefa.
           const onPress = () => (selectionMode ? toggleSelected(item.id) : router.push(`/task/${item.id}` as never));
           const onLongPress = () => (selectionMode ? toggleSelected(item.id) : enterSelection(item.id));

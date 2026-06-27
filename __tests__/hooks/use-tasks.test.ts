@@ -401,7 +401,7 @@ describe('useToggleTaskStatus', () => {
       await result.current.mutateAsync({ id: '3', status: 'completed' });
     });
 
-    expect(mockTaskApiUpdateStatus).toHaveBeenCalledWith(3, 'completed');
+    expect(mockTaskApiUpdateStatus).toHaveBeenCalledWith(3, 'completed', undefined);
   });
 
   it('invalida queries de tasks e da tarefa específica após sucesso', async () => {
