@@ -229,7 +229,10 @@ export default function CalendarScreen() {
           const dateMidnight = toLocalMidnight(date).getTime();
           const isToday = dateStr === todayStr;
           const isSelected = dateMidnight === selectedMidnight;
-          const taskCount = tasksByDate.get(dateStr)?.length ?? 0;
+          // Badge conta só as tarefas EM ABERTO do dia (ignora concluídas/canceladas).
+          const taskCount = (tasksByDate.get(dateStr) ?? []).filter(
+            (t) => t.status !== 'completed' && t.status !== 'cancelled',
+          ).length;
 
           return (
             <TouchableOpacity
